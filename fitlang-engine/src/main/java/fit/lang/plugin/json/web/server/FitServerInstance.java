@@ -12,7 +12,7 @@ public class FitServerInstance {
 
     JSONArray serviceList = new JSONArray();
 
-    private String serviceDir;
+    private String serverDir;
 
     private String serverFile;
 
@@ -39,12 +39,12 @@ public class FitServerInstance {
         this.serviceList = serviceList;
     }
 
-    public String getServiceDir() {
-        return serviceDir;
+    public String getServerDir() {
+        return serverDir;
     }
 
-    public void setServiceDir(String serviceDir) {
-        this.serviceDir = serviceDir;
+    public void setServerDir(String serverDir) {
+        this.serverDir = serverDir;
     }
 
     public String getServerFile() {
@@ -73,8 +73,10 @@ public class FitServerInstance {
 
     public JSONObject getDisplayInfo() {
         JSONObject info = new JSONObject();
-        info.put("file", serverFile);
+        info.put("serverDir", serverDir);
+        info.put("serverFile", serverFile);
         info.put("url", url);
+        info.put("port", getPort());
         return info;
     }
 

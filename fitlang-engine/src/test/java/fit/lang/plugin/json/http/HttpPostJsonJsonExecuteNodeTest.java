@@ -25,6 +25,28 @@ public class HttpPostJsonJsonExecuteNodeTest extends TestCase {
 
     }
 
+    public void testExecuteWithProxy() {
+
+        String flow = "{" +//
+                "   'uni':'httpGet'," +
+                "   'url':'https://www.baidu.com'," +
+                "   'header':{" +
+//                "       'Host':'www.baidu.com'" +
+                "   }," +
+                "    'proxy': {" +
+                "        'host': '62.234.182.56'," +
+                "        'port': 443" +
+                "    }" +
+                "}";
+        String output = ExecuteJsonNodeUtil.executeCode("{}", flow);
+
+        System.out.println(output);
+
+        Assert.assertTrue(!output.isEmpty());
+        Assert.assertTrue(output.toString().contains("百度"));
+
+
+    }
 
     public void testExecute2() {
 

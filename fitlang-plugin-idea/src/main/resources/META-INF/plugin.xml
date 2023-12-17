@@ -76,10 +76,23 @@ execute: execute input node define<br/>
 <br/>
 
 web nodes<br/>
-hTTP: supports HTTP client request<br/>
+http: supports HTTP client request<br/>
 server: server node<br/>
 proxy: proxy node<br/>
 web: config web param, such as response header<br/>
+<br/>
+
+info nodes<br/>
+systemInfo: os、memory info<br/>
+info: jvm jdk info<br/>
+<br/>
+
+command nodes<br/>
+cmd: cmd<br/>
+telnet: telnet<br/>
+telnets: telnets<br/>
+telnet.http: telnet.http<br/>
+telnet.https: telnet.https<br/>
 <br/>
 
 Monitoring nodes<br/>
@@ -89,12 +102,6 @@ getClientMonitorData: get client monitor data<br/>
 receiveClientMonitorData: receive client monitor data<br/>
 pushClientMonitorData: push client monitor data<br/>
 getMonitorClient: get monitor client list<br/>
-
-info nodes<br/>
-systemInfo: os、memory info<br/>
-info: jvm jdk info<br/>
-<br/>
-<br/>
 
 中文：<br/>
 <br/>
@@ -164,7 +171,7 @@ switch：分支执行节点，switchField指定分支字段<br/>
 execute: 执行节点<br/>
 <br/>
 
-Web节点<br/>
+web节点<br/>
 http：支持http-client请求, postJson, postForm, httpGet, httpPut, httpDelete<br/>
 server：服务端节点<br/>
 proxy：代理节点<br/>
@@ -176,8 +183,12 @@ systemInfo: CPU、内存信息<br/>
 info: JVM, JDK, 运行时信息<br/>
 <br/>
 
-命令行<br/>
+命令行节点<br/>
 cmd: 命令行<br/>
+telnet: telnet<br/>
+telnets: telnets<br/>
+telnet.http: telnet.http<br/>
+telnet.https: telnet.https<br/>
 <br/>
 
 监控节点<br/>
@@ -366,25 +377,76 @@ getMonitorClient: 获取监控客户端列表<br/>
     </extensions>
 
     <actions>
-<!--        <action id="RunFitLangForZip" class="my.lang.action.ScriptRunCodeForZipAction" text="Zip"-->
-<!--                description="Zip file" icon="/my/lang/icon/fit.svg">-->
-<!--            <add-to-group group-id="EditorPopupMenu" anchor="first"/>-->
-<!--            <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>-->
-<!--            <keyboard-shortcut first-keystroke="control shift Z" keymap="$default"/>-->
-<!--        </action>-->
-        <!-- Add your actions here -->
-        <action id="RunFitLang" class="my.lang.action.ScriptRunCodeAction" text="Run FitLang"
+        <group id="FitActionGroup9" text="Fit Actions9" icon="/my/lang/icon/fit.svg" popup="true"
+               class="my.lang.action.group.FitLangPluginActionGroup9">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
+        </group>
+        <group id="FitActionGroup8" text="Fit Actions8" icon="/my/lang/icon/fit.svg" popup="true"
+               class="my.lang.action.group.FitLangPluginActionGroup8">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
+        </group>
+        <group id="FitActionGroup7" text="Fit Actions7" icon="/my/lang/icon/fit.svg" popup="true"
+               class="my.lang.action.group.FitLangPluginActionGroup7">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
+        </group>
+        <group id="FitActionGroup6" text="Fit Actions6" icon="/my/lang/icon/fit.svg" popup="true"
+               class="my.lang.action.group.FitLangPluginActionGroup6">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
+        </group>
+
+        <group id="FitActionGroup5" text="Fit Actions5" icon="/my/lang/icon/fit.svg" popup="true"
+               class="my.lang.action.group.FitLangPluginActionGroup5">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
+        </group>
+        <group id="FitActionGroup4" text="Fit Actions4" icon="/my/lang/icon/fit.svg" popup="true"
+               class="my.lang.action.group.FitLangPluginActionGroup4">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
+        </group>
+        <group id="FitActionGroup3" text="Fit Actions3" icon="/my/lang/icon/fit.svg" popup="true"
+               class="my.lang.action.group.FitLangPluginActionGroup3">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
+        </group>
+        <group id="FitActionGroup2" text="Fit Actions2" icon="/my/lang/icon/fit.svg" popup="true"
+               class="my.lang.action.group.FitLangPluginActionGroup2">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
+        </group>
+        <group id="FitActionGroup1" text="Fit Actions1" icon="/my/lang/icon/fit.svg" popup="true"
+               class="my.lang.action.group.FitLangPluginActionGroup1">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
+        </group>
+        <group id="FitActionGroup0" text="Fit Actions0" icon="/my/lang/icon/fit.svg" popup="true"
+               class="my.lang.action.group.FitLangPluginActionGroup0">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
+        </group>
+
+        <action id="RunFitLang" class="my.lang.action.ScriptRunCodeAction" text="Fit Run"
                 description="Run fit lang" icon="/my/lang/icon/fit.svg">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
             <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
             <keyboard-shortcut first-keystroke="control shift J" keymap="$default"/>
         </action>
+
     </actions>
 
     <change-notes>
         <![CDATA[
         FitLang update list:<br/>
         <ul>
+            <li>0.8.2 add FitLang doc</li>
+            <li>0.8.1 project IDE plugin support 10 menus and sub menu; add go-doudou ide plugin</li>
+            <li>0.8.0 support project IDE plugin by plugin.fit, support 5 menu groups</li>
+            <li>0.7.9 support dynamic plugin; start IDEA by shell will with path env!</li>
+            <li>0.7.8 add zip/unzip IDEA plugin; support config plugin;</li>
             <li>0.7.7 add node: zip, unzip, httpHead; support uni http: GET, POST, PUT, DELETE, HEAD; telnets support proxy;</li>
             <li>0.7.6 support language java, go(?), js(?), python, rust(?) code run, like Code Runner</li>
             <li>0.7.5 cmd support extend command: java, javac, jar; replace aviator to mvel expression; refine telnet.http;</li>

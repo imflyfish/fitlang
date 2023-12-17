@@ -13,11 +13,12 @@ import fit.lang.plugin.json.define.JsonExecuteNodeInput;
 import fit.lang.plugin.json.define.JsonExecuteNodeOutput;
 
 import java.io.File;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static fit.lang.plugin.json.ExecuteJsonNodeUtil.getSystemCharset;
+import static fit.lang.plugin.json.ExecuteJsonNodeUtil.getFileCharset;
 
 /**
  * 执行节点
@@ -29,22 +30,32 @@ public class CmdJsonExecuteNode extends JsonExecuteNode {
 
         List<String> cmdList = parseStringArray("cmd", input);
 
+        String charset = parseStringField("charset", input);
+
+        boolean debug = Boolean.TRUE.equals(nodeJsonDefine.getBoolean("debug"));
+        boolean ignoreCurrentDir = Boolean.TRUE.equals(nodeJsonDefine.getBoolean("ignoreCurrentDir"));
+
         if (cmdList == null || cmdList.isEmpty()) {
             throw new ExecuteNodeException("cmd is required!");
         }
 
-        String[] envArray = new String[0];
-        JSONObject env = nodeJsonDefine.getJSONObject("env");
-        if (env != null) {
-            env = ExpressUtil.eval(env, input.getInputParamAndContextParam());
-            envArray = new String[env.size()];
-            int index = 0;
-            for (Map.Entry<String, Object> entry : env.entrySet()) {
-                if (entry.getValue() == null) {
-                    continue;
-                }
-                envArray[index++] = entry.getKey().concat("=").concat(entry.getValue().toString());
+        String[] envArray;
+        JSONObject env = new JSONObject();
+        env.putAll(System.getenv());
+
+        JSONObject configEnv = nodeJsonDefine.getJSONObject("env");
+
+        if (configEnv != null) {
+            env.putAll(configEnv);
+        }
+        env = ExpressUtil.eval(env, input.getInputParamAndContextParam());
+        envArray = new String[env.size()];
+        int index = 0;
+        for (Map.Entry<String, Object> entry : env.entrySet()) {
+            if (entry.getValue() == null) {
+                continue;
             }
+            envArray[index++] = entry.getKey().concat("=").concat(entry.getValue().toString());
         }
 
         JSONObject option = nodeJsonDefine.getJSONObject("option");
@@ -79,7 +90,7 @@ public class CmdJsonExecuteNode extends JsonExecuteNode {
                     try {
                         Process process;
 
-                        if (JsonDynamicFlowExecuteEngine.getCurrentDir() != null) {
+                        if (JsonDynamicFlowExecuteEngine.getCurrentDir() != null && !ignoreCurrentDir) {
                             process = RuntimeUtil.exec(envArray, new File(JsonDynamicFlowExecuteEngine.getCurrentDir()), cmd);
                         } else {
                             process = RuntimeUtil.exec(envArray, cmd);
@@ -87,7 +98,7 @@ public class CmdJsonExecuteNode extends JsonExecuteNode {
 
                         resultLines = IoUtil.readUtf8Lines(process.getErrorStream(), new ArrayList<>());
                         if (resultLines == null || resultLines.isEmpty()) {
-                            resultLines = IoUtil.readLines(process.getInputStream(), getSystemCharset(), new ArrayList<>());
+                            resultLines = IoUtil.readLines(process.getInputStream(), getCharset(charset), new ArrayList<>());
                         }
                     } catch (Throwable e) {
                         resultLines = Collections.singletonList(e.getMessage());
@@ -95,8 +106,8 @@ public class CmdJsonExecuteNode extends JsonExecuteNode {
                 }
             }
             result.put("cmd", cmd);
-            if (env != null && !env.isEmpty()) {
-                result.put("env", env);
+            if (debug) {
+                result.put("env", env);//数量太多
             }
             result.put("out", resultLines);
             results.add(result);
@@ -106,6 +117,13 @@ public class CmdJsonExecuteNode extends JsonExecuteNode {
 
         output.set("result", isArray ? results : results.get(0));
 
+    }
+
+    Charset getCharset(String configCharset) {
+        if (StrUtil.isNotBlank(configCharset)) {
+            return Charset.forName(configCharset);
+        }
+        return getFileCharset();
     }
 
     /**
@@ -226,7 +244,7 @@ public class CmdJsonExecuteNode extends JsonExecuteNode {
                 || cmd.contains("|")
                 || cmd.contains("@")
 //                || cmd.contains("$")
-                || cmd.contains("~")
+//                || cmd.contains("~")
                 || cmd.contains("`")
         ) {
             return "cmd is disabled";

@@ -1,5 +1,6 @@
 package my.lang.action;
 
+import cn.hutool.core.io.CharsetDetector;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
@@ -27,10 +28,12 @@ import fit.lang.plugin.json.web.ServerJsonExecuteNode;
 import java.io.File;
 import java.io.InputStream;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 
-import static fit.lang.ExecuteNodeUtil.getAllException;
+import static fit.lang.ExecuteNodeUtil.getRootException;
 import static fit.lang.plugin.json.ExecuteJsonNodeUtil.*;
 import static my.lang.MyLanguage.isMyLanguageFile;
 
@@ -58,6 +61,14 @@ public abstract class RunCodeAction extends AnAction {
      */
     public abstract String getLogoString();
 
+    protected RunCodeAction() {
+
+    }
+
+    protected RunCodeAction(String title) {
+        super(title);
+    }
+
     /**
      * 获取 project到consoleView的映射
      *
@@ -68,7 +79,7 @@ public abstract class RunCodeAction extends AnAction {
     public static Map<Project, ToolWindow> windowMap = new HashMap<Project, ToolWindow>();
 
     private final BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(100);
-    ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(4, 10, 10, TimeUnit.MINUTES, workQueue);
+    ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(8, 100, 100, TimeUnit.MINUTES, workQueue);
 
     @Override
     public void actionPerformed(AnActionEvent e) {
@@ -140,14 +151,15 @@ public abstract class RunCodeAction extends AnAction {
                         print("run file: " + path + "\n", project, getProjectConsoleViewMap());
                     }
 
-                    Object resultObject = executeCode(code, path);
+                    String projectPath = e.getProject() == null ? "" : e.getProject().getBasePath();
+
+                    Object resultObject = executeCode(code, path, projectPath);
 
                     result = resultObject.toString();
 
                 } catch (Throwable exception) {
                     exception.printStackTrace();
-                    result = "exception:" + getAllException(exception);
-                    // throw exception; //TODO
+                    result = "exception:" + getRootException(exception);
                 }
 
                 System.out.println("execute " + getLanguageName() + " code result:");
@@ -170,23 +182,19 @@ public abstract class RunCodeAction extends AnAction {
                 ;
     }
 
-    String executeCode(String code, String codePath) {
-
-        ServerJsonExecuteNode.setCurrentServerFilePath(codePath);
-        JsonPackageExecuteNode.addImportPath(ServerJsonExecuteNode.getServerFileDir());
+    String executeCode(String code, String codePath, String projectPath) {
 
         File file = new File(codePath);
         if (!file.exists()) {
             return "file not existed: ".concat(codePath);
         }
-        JSONObject contextParam = new JSONObject();
-        contextParam.put("filePath", file.getAbsolutePath());
-        contextParam.put("fileName", file.getName());
-        contextParam.put("fileDir", file.getParent());
-        contextParam.put("userHome", SystemUtil.getProps().get("user.home"));
+
+        ServerJsonExecuteNode.setCurrentServerFilePath(codePath);
+        JsonPackageExecuteNode.addImportPath(ServerJsonExecuteNode.getServerFileDir());
+
+        JSONObject contextParam = buildContextParam(projectPath, file);
 
         String fileName = file.getName();
-        contextParam.put("filePrefix", fileName.split("\\.")[0]);
 
         String fileSuffix = null;
         if (fileName.contains(".")) {
@@ -200,7 +208,14 @@ public abstract class RunCodeAction extends AnAction {
             result = ExecuteJsonNodeUtil.executeCode(code, contextParam);
             needFormatJsonInConsole = needFormatJsonInConsole(code);
         } else if (fileSuffix != null && supportLanguageMap.containsKey(fileSuffix)) {
+            Charset charset = CharsetDetector.detect(file, characters);
+            contextParam.put("charset", charset.name());
+
             result = runLanguageFile(fileSuffix, contextParam);
+
+            //文件字符集转换为操作系统默认字符集
+            result = new String(result.getBytes(charset));
+
             needFormatJsonInConsole = true;
         } else {
             result = "can not execute: ".concat(codePath);
@@ -211,6 +226,57 @@ public abstract class RunCodeAction extends AnAction {
         }
 
         return result;
+    }
+
+    static Charset[] characters = new Charset[]{
+            StandardCharsets.UTF_8,
+            StandardCharsets.UTF_8,
+            Charset.forName("ISO8859-1"),
+    };
+
+    static {
+        try {
+            characters[1] = Charset.forName("GBK");
+        } catch (Exception e) {
+            //ignore
+        }
+    }
+
+    static JSONObject buildContextParam(String projectPath, File file) {
+        JSONObject contextParam = new JSONObject();
+
+        contextParam.put("projectPath", projectPath);
+
+        contextParam.put("fileDir", file.getParent());
+        String fileDirInProject = file.getParent().substring(projectPath.length());
+        contextParam.put("fileDirInProject", fileDirInProject);
+        contextParam.put("fileDirInProject1", "");
+        contextParam.put("fileDirInProject2", "");
+        contextParam.put("fileDirInProject3", "");
+        if (fileDirInProject.indexOf(File.separatorChar, 1) > 0) {
+            String fileDirInProject1 = fileDirInProject.substring(fileDirInProject.indexOf(File.separatorChar, 1));
+            contextParam.put("fileDirInProject1", fileDirInProject1);
+            if (fileDirInProject1.indexOf(File.separatorChar, 1) > 0) {
+                String fileDirInProject2 = fileDirInProject1.substring(fileDirInProject1.indexOf(File.separatorChar, 1));
+                contextParam.put("fileDirInProject2", fileDirInProject2);
+                if (fileDirInProject2.indexOf(File.separatorChar, 1) > 0) {
+                    contextParam.put("fileDirInProject3", fileDirInProject2.substring(fileDirInProject2.indexOf(File.separatorChar, 1)));
+                }
+            }
+        }
+
+        contextParam.put("filePath", file.getAbsolutePath());
+        contextParam.put("path", file.getAbsolutePath());
+        contextParam.put("fileName", file.getName());
+        contextParam.put("filePrefix", file.getName().split("\\.")[0]);
+        contextParam.put("fileSeparator", File.separator);
+        contextParam.put("pathSeparator", File.pathSeparator);
+
+        if (file.getName().contains(".")) {
+            contextParam.put("fileSuffix", file.getName().split("\\.")[1]);
+        }
+        contextParam.put("userHome", SystemUtil.getProps().get("user.home"));
+        return contextParam;
     }
 
     static JSONObject supportLanguageMap = new JSONObject();
@@ -226,13 +292,8 @@ public abstract class RunCodeAction extends AnAction {
     }
 
     String runLanguageFile(String fileType, JSONObject contextParam) {
-        String path = "fit/plugin/code/".concat(fileType).concat(".fit");
-        InputStream in = RunCodeAction.class.getClassLoader().getResourceAsStream(path);
-        if (in == null) {
-            return "can not found: ".concat(path);
-        }
-        String fitCode = IoUtil.readUtf8(in);
-        String result = ExecuteJsonNodeUtil.executeCode(fitCode, contextParam);
+        String fitPath = "fit/plugin/code/".concat(fileType).concat(".fit");
+        String result = runFitFile(fitPath, contextParam);
         if (isJsonObjectText(result)) {
             JSONObject resultJson = JSONObject.parseObject(result);
             JSONArray lines;
@@ -245,6 +306,25 @@ public abstract class RunCodeAction extends AnAction {
             return lines == null ? "" : StrUtil.join("\n", lines);
         }
         return "error: ".concat(result);
+    }
+
+    String runFitFile(String fitPath, JSONObject contextParam) {
+        String fitCode = getPluginFile(fitPath);
+        return ExecuteJsonNodeUtil.executeCode(fitCode, contextParam);
+    }
+
+    static String getPluginFile(String path) {
+        if (path.startsWith("~")) {
+            return FileUtil.readUtf8String(path);
+        }
+        if (path.startsWith("file:")) {
+            return FileUtil.readUtf8String(path.substring("file:".length()));
+        }
+        InputStream in = RunCodeAction.class.getClassLoader().getResourceAsStream(path);
+        if (in == null) {
+            throw new RuntimeException("getPluginFile can not found: ".concat(path));
+        }
+        return IoUtil.readUtf8(in);
     }
 
     public static synchronized void initConsoleViewIfNeed(Project project, String languageName, String logoString, Map<Project, ConsoleView> projectConsoleViewMap) {
@@ -271,14 +351,14 @@ public abstract class RunCodeAction extends AnAction {
         return projectConsoleViewMap.get(project) != null;
     }
 
-    void print(String result, Project project, Map<Project, ConsoleView> projectConsoleViewMap) {
+    static void print(String result, Project project, Map<Project, ConsoleView> projectConsoleViewMap) {
         projectConsoleViewMap.get(project).print(result, ConsoleViewContentType.NORMAL_OUTPUT);
 
         //低版本idea不支持此方法，兼容处理
         scrollToEnd(projectConsoleViewMap.get(project));
     }
 
-    private void scrollToEnd(ConsoleView consoleView) {
+    static void scrollToEnd(ConsoleView consoleView) {
         try {
             Method method = ConsoleView.class.getMethod("requestScrollingToEnd", new Class[0]);
             method.invoke(consoleView, new Object[0]);

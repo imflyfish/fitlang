@@ -68,6 +68,7 @@ public class TelnetHttpJsonExecuteNode extends JsonExecuteNode {
             inputLines.add("");
 
             Proxy proxy = buildProxy(nodeJsonDefine.getJSONObject("proxy"));
+            String host = urlHost;
             Socket socket = buildSocket(urlHost, port, proxy);
             OutputStream outputStream = socket.getOutputStream();
             for (String line : inputLines) {
@@ -87,7 +88,7 @@ public class TelnetHttpJsonExecuteNode extends JsonExecuteNode {
             output.set("host", header.get("Host"));
             output.set("port", port);
             output.set("inputHeader", header);
-//            output.set("input", JSON.toJSON(inputLines));
+            output.set("input", JSON.toJSON(inputLines));
             if (outputLines.size() > 0) {
                 String statusLine = outputLines.get(0);
                 String[] parts = statusLine.split(" ");

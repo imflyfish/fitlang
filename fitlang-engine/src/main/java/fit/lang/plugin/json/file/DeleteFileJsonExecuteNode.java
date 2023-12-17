@@ -8,6 +8,8 @@ import fit.lang.plugin.json.define.JsonExecuteNode;
 import fit.lang.plugin.json.define.JsonExecuteNodeInput;
 import fit.lang.plugin.json.define.JsonExecuteNodeOutput;
 
+import java.io.File;
+
 import static fit.lang.plugin.json.ExecuteJsonNodeUtil.joinFilePath;
 
 /**
@@ -24,7 +26,8 @@ public class DeleteFileJsonExecuteNode extends JsonExecuteNode {
         String path = parseStringField("filePath", input);
 
         if (StrUtil.isBlank(workspaceDir)) {
-            throw new ExecuteNodeException("writeFile workspaceDir param is required!");
+//            throw new ExecuteNodeException("writeFile workspaceDir param is required!");
+            workspaceDir = "";
         }
 
         if (StrUtil.isBlank(path)) {
@@ -32,6 +35,7 @@ public class DeleteFileJsonExecuteNode extends JsonExecuteNode {
         }
 
         String filePath = joinFilePath(workspaceDir, path);
+
         boolean success = FileUtil.del(filePath);
         output.set("success", success);
         output.set("absolutePath", filePath);

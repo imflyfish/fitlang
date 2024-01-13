@@ -1,0 +1,18 @@
+{
+    "input": {
+        "list": [
+            "a",
+            "b"
+        ]
+    },
+    "uni": "foreach",
+    "foreachField": "list",
+    "child": [
+        {
+            "uni": "increase"
+        },
+        {
+            "uni": "increase"
+        }
+    ]
+}

@@ -7,6 +7,7 @@ import com.alibaba.fastjson2.JSONObject;
 import fit.lang.ExecuteNodeEngineConst;
 import fit.lang.ExecuteNodeException;
 import fit.lang.ExecuteNodeUtil;
+import fit.lang.ExecuteReturnNodeException;
 import fit.lang.common.flow.ThreadExecuteNode;
 import fit.lang.common.util.EchoExecuteNode;
 import fit.lang.common.util.PrintExecuteNode;
@@ -17,8 +18,10 @@ import fit.lang.define.base.ExecuteNodeBuildable;
 import fit.lang.plugin.json.cmd.CmdJsonExecuteNode;
 import fit.lang.plugin.json.cmd.UnzipJsonExecuteNode;
 import fit.lang.plugin.json.cmd.ZipJsonExecuteNode;
-import fit.lang.plugin.json.define.*;
-
+import fit.lang.plugin.json.define.JsonExecuteNode;
+import fit.lang.plugin.json.define.JsonExecuteNodeData;
+import fit.lang.plugin.json.define.JsonExecuteNodeInput;
+import fit.lang.plugin.json.define.JsonExecuteNodeOutput;
 import fit.lang.plugin.json.file.DeleteFileJsonExecuteNode;
 import fit.lang.plugin.json.file.ReadFileJsonExecuteNode;
 import fit.lang.plugin.json.file.WriteFileJsonExecuteNode;
@@ -26,6 +29,11 @@ import fit.lang.plugin.json.flow.*;
 import fit.lang.plugin.json.function.JsonFunctionExecuteNode;
 import fit.lang.plugin.json.function.JsonPackageExecuteNode;
 import fit.lang.plugin.json.http.*;
+import fit.lang.plugin.json.ide.*;
+import fit.lang.plugin.json.ide.message.ShowErrorMessageJsonExecuteNode;
+import fit.lang.plugin.json.ide.message.ShowInfoMessageJsonExecuteNode;
+import fit.lang.plugin.json.ide.message.ShowInputDialogJsonExecuteNode;
+import fit.lang.plugin.json.ide.message.ShowOkCancelDialogJsonExecuteNode;
 import fit.lang.plugin.json.info.InfoJsonExecuteNode;
 import fit.lang.plugin.json.info.SystemBaseInfoJsonExecuteNode;
 import fit.lang.plugin.json.json.*;
@@ -34,10 +42,12 @@ import fit.lang.plugin.json.net.SslTelnetHttpJsonExecuteNode;
 import fit.lang.plugin.json.net.SslTelnetJsonExecuteNode;
 import fit.lang.plugin.json.net.TelnetHttpJsonExecuteNode;
 import fit.lang.plugin.json.net.TelnetJsonExecuteNode;
+import fit.lang.plugin.json.os.GetClipboardJsonExecuteNode;
+import fit.lang.plugin.json.os.SetClipboardJsonExecuteNode;
+import fit.lang.plugin.json.util.*;
 import fit.lang.plugin.json.web.ProxyJsonExecuteNode;
 import fit.lang.plugin.json.web.ServerJsonExecuteNode;
-import fit.lang.plugin.json.util.*;
-import fit.lang.plugin.json.web.*;
+import fit.lang.plugin.json.web.WebJsonExecuteNode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -86,9 +96,12 @@ public class JsonDynamicFlowExecuteEngine extends JsonExecuteNode implements Exe
         if (StrUtil.isNotBlank(currentDir)) {
             input.getNodeContext().setAttribute("currentDir", currentDir);
         }
-        ExecuteNode executeNode = createExecuteNode(nodeDefine, input.getNodeContext());
-
-        executeNode.executeAndNext(input, output);
+        try {
+            ExecuteNode executeNode = createExecuteNode(nodeDefine, input.getNodeContext());
+            executeNode.executeAndNext(input, output);
+        } catch (ExecuteReturnNodeException returnNodeException) {
+            output.setData(returnNodeException.getResult());
+        }
 
     }
 
@@ -191,39 +204,45 @@ public class JsonDynamicFlowExecuteEngine extends JsonExecuteNode implements Exe
         // util
         register("hello", HelloJsonExecuteNode.class);
         register("echo", EchoExecuteNode.class);
+        register("setGlobal", SetGlobalJsonExecuteNode.class);
         register("print", PrintExecuteNode.class);
+        register("log", LogJsonExecuteNode.class);
         register("sleep", SleepJsonExecuteNode.class);
-        register("assert", AssertJsonExecuteNode.class);
         register("perf", PerformanceJsonExecuteNode.class);
+        register("replaceContent", ReplaceContentJsonExecuteNode.class);
 
         // flow
-        register("pipe", JsonPipeExecuteNode.class);
         register("sequence", JsonSequenceExecuteNode.class);
+        register("batch", JsonBatchExecuteNode.class);
+        register("pipe", JsonPipeExecuteNode.class);
         register("foreach", JsonForeachExecuteNode.class);
         register("loop", JsonLoopExecuteNode.class);
         register("switch", JsonSwitchExecuteNode.class);
-        register("return", ReturnJsonExecuteNode.class);
         register("thread", ThreadExecuteNode.class);
         register("call", CallJsonExecuteNode.class);
         register("catch", CatchJsonExecuteNode.class);
-        register("batch", JsonBatchExecuteNode.class);
-
+        register("assert", AssertJsonExecuteNode.class);
+        register("return", ReturnJsonExecuteNode.class);
         register("execute", ExecuteJsonExecuteNode.class);
 
         //json
         register("parseJson", ParseJsonJsonExecuteNode.class);
         register("stringifyJson", StringifyJsonJsonExecuteNode.class);
+        register("parse", ParseJsonJsonExecuteNode.class);
+        register("stringify", StringifyJsonJsonExecuteNode.class);
 
         register("mix", MixJsonExecuteNode.class);
         register("eval", EvalJsonExecuteNode.class);
-        register("set", SetJsonExecuteNode.class);
-
         register("mixNode", MixNodeJsonExecuteNode.class);
 
-        register("node", JsonNodeExecuteNode.class);
+        register("get", GetJsonExecuteNode.class);
+        register("set", SetJsonExecuteNode.class);
 
         register("removeField", RemoveFieldJsonExecuteNode.class);
         register("removeEmptyField", RemoveEmptyFieldJsonExecuteNode.class);
+
+        register("sortField", SortFieldJsonExecuteNode.class);
+        register("getStruct", GetStructJsonExecuteNode.class);
 
         register("convert", ConvertJsonExecuteNode.class);
         register("convertKeyValueList", ConvertKeyValueListJsonExecuteNode.class);
@@ -300,6 +319,23 @@ public class JsonDynamicFlowExecuteEngine extends JsonExecuteNode implements Exe
         register("telnets", SslTelnetJsonExecuteNode.class);
         register("telnet.http", TelnetHttpJsonExecuteNode.class);
         register("telnet.https", SslTelnetHttpJsonExecuteNode.class);
+
+        //ide
+        register("readEditor", ReadEditorJsonExecuteNode.class);
+        register("writeEditor", WriteEditorJsonExecuteNode.class);
+        register("readEditorSearch", ReadEditorSearchJsonExecuteNode.class);
+        register("readEditorReplace", ReadEditorReplaceJsonExecuteNode.class);
+        register("openWebPage", OpenWebPageJsonExecuteNode.class);
+        register("showConfig", ShowConfigJsonExecuteNode.class);
+        register("readConfig", ReadConfigJsonExecuteNode.class);
+        register("showInfoMessage", ShowInfoMessageJsonExecuteNode.class);
+        register("showErrorMessage", ShowErrorMessageJsonExecuteNode.class);
+        register("showOkCancelDialog", ShowOkCancelDialogJsonExecuteNode.class);
+        register("showInputDialog", ShowInputDialogJsonExecuteNode.class);
+
+        //os
+        register("getClipboard", GetClipboardJsonExecuteNode.class);
+        register("setClipboard", SetClipboardJsonExecuteNode.class);
 
     }
 }

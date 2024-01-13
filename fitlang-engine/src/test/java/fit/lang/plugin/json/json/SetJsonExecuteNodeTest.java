@@ -12,24 +12,18 @@ public class SetJsonExecuteNodeTest extends TestCase {
                 "    'child': [" +
                 "       {" +
                 "           'uni': 'set'," +
-                "           'key': 'data'," +
+                "           'path': 'data'," +
                 "           'value':{" +
                 "               'hello':'world'" +
                 "           }" +
                 "        }," +
-                "        {" +
-                "            'uni': 'mix'," +
-                "            'json': {" +
-                "               'hello':\"${data.hello}\"" +
-                "             }" +//
-                "        }" +//
                 "     ]" +
                 "}";
-
+        System.out.println(flow.replace("'", "\""));
         String output = ExecuteJsonNodeUtil.executeCode("{}", flow);
 
         System.out.println(output);
-        Assert.assertEquals("{\"data\":{\"hello\":\"world\"},\"hello\":\"world\"}", output);
+        Assert.assertEquals("{\"data\":{\"hello\":\"world\"}}", output);
 
     }
 }

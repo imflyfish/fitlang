@@ -15,7 +15,7 @@ public class HelloJsonExecuteNodeTest extends TestCase {
 
         JSONObject output = ExecuteJsonNodeUtil.execute(JSON.parseObject("{'who':'world'}"), helloExecuteNode);
 
-        Assert.assertTrue(!output.isEmpty());
+        Assert.assertFalse(output.isEmpty());
 
         System.out.println(output);
 
@@ -31,11 +31,11 @@ public class HelloJsonExecuteNodeTest extends TestCase {
                 "   'message': \"${'hello, ' + who + '!'}\"" +
                 "}";
 
-        String output = ExecuteJsonNodeUtil.executeCode("{}", flow);
+        String output = ExecuteJsonNodeUtil.executeCode("{'who':'world'}", flow);
 
         JSONObject outputJson = JSON.parseObject(output);
 
-        Assert.assertTrue(!output.isEmpty());
+        Assert.assertFalse(output.isEmpty());
 
         System.out.println(output);
 

@@ -1,5 +1,4 @@
 {
-    "flag": "needFormatJsonInConsoleFlag",
     "input": {
         "workspaceDir": "/opt/github/fitlang/fitlang-server/demo/fitserver/app/postman/",
         "filePath": "fit-test.postman_collection.json"
@@ -10,18 +9,14 @@
             "uni": "readFile"
         },
         {
-            "uni": "parseJson",
-            "jsonField": "content"
-        },
-        {
             "uni": "convert",
             "express": {
-                "item": "${content.item}",
-                "collectionName": "${content.info.name}"
+                "item": "${item}",
+                "collectionName": "${info.name}"
             }
         },
         {
-            "uni": "set",
+            "uni": "setGlobal",
             "key": "collectionName",
             "value": "${collectionName}"
         },
@@ -57,7 +52,6 @@
                                         "uni": "convert",
                                         "express": {
                                             "name": "${name}",
-                                            "content.flag": "needFormatJsonInConsoleFlag",
                                             "content.name": "${name}",
                                             "content.uni": "http",
                                             "content.method": "${request.method}",

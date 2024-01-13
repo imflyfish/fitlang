@@ -1,0 +1,14 @@
+{
+    "uni": "pipe",
+    "child": [
+        {
+            "uni": "mix",
+            "json": {
+                "who": "fit"
+            }
+        },
+        {
+            "uni": "hello"
+        }
+    ]
+}

@@ -7,7 +7,7 @@
 - 路径：菜单：Settings -> Plugins -> Marketplace
 - 快捷键：Cmd + ,
 
-输入fitlang，绿色背景，大写白色F，小写it，就是此插件
+输入fitlang，绿色背景，白色大写F，小写it，就是此插件
 
 或者新建hello.fit文件，IDEA的智能感知，会提示下载插件，按照提示操作即可，此特性非常人性化
 
@@ -25,11 +25,13 @@
 
 ```
 {
+    "enable": true,
     "debug": true,
     "groups": [
         {
             "name": "FitActionGroup0",
             "title": "Fit Hello",
+            "visible": true,
             "script": {
                 "uni": "hello",
                 "who": "fit"
@@ -52,15 +54,19 @@
 }
 ```
 
-添加后，鼠标右键，就会出现一个新的菜单选项：Fit Hello
+添加后，鼠标右键，就会出现两个一级菜单选项：Fit Hello、Fit Menu2，和一个二级菜单：Zip
 
 配置项说明
 
+- enable: 配置是否启用，为true时启用
 - debug: debug为true时，修改配置就会实时生效, 为false时，需要重启IDEA生效
 - groups: 菜单组，支持两级菜单
     - name: 菜单名称，必须使用内置的名称：FitActionGroup0-9,内置了10个一级菜单（不能重复）
     - title: 菜单显示名称
     - script: 点击菜单后，会执行此处定义的脚步内容，也是fit语法
+    - visible: 配置是否可见
+    - refreshParent: 执行完是否刷新父目录，创建新文件场景需要刷新才能看见
+    - refresh: 执行完是否刷新当前文件内容，早期操作文件时需要，后面支持读取编辑器内容后，基本不再使用
     - actions: 二级菜单定义，不限数量（script和actions只使用一个，优先script配置）
         - name: 二级菜单内部名称（自定义，不能重复）
         - title: 二级菜单显示名称
@@ -69,6 +75,21 @@
 ### 动态插件案例
 
 动态插件放到目录中：/fitlang-project-plugin/plugins
+
+#### default
+
+默认项目插件（从中可以查看配置方法）
+- Fit Hello: 一个最简单的HelloWorld示例
+- Run Code: 执行多种编程语言
+- Fit Tools: zip和unzip
+- Fit Info: 查看上下文信息，系统信息，基础信息
+- Fit Server: fit实现的轻量级中间件，类似于tomcat
+- Convert Postman: 转换postman v2版本成fit文件（一个较复杂的应用案例）
+- Sort Json Field: 对json进行排序
+- Get Json: 获取json结构，方便做报文结构对比
+- Parse Json: 编辑器中解析json内容，如果是多个json返回数组格式
+
+#### go-doudou
 
 开源项目go-doudou配置如下，支持项目代码生成、启动等相关操作，简化命令行操作
 

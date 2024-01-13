@@ -18,23 +18,23 @@ import fit.lang.plugin.json.define.*;
 import fit.lang.plugin.json.web.ServerJsonExecuteNode;
 
 import java.io.File;
+import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.SocketAddress;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import static fit.lang.ExecuteNodeUtil.getUserHome;
+import static fit.lang.plugin.json.ExecuteJsonNodeConst.FIELD_NAME_OF_IDEA_PROJECT;
 import static fit.lang.plugin.json.ExpressUtil.eval;
-import static fit.lang.plugin.json.web.ServerJsonExecuteNode.isWebNode;
 
 /**
  * 工具类
  */
 public class ExecuteJsonNodeUtil {
+
 
     /**
      * 执行执行json
@@ -156,15 +156,24 @@ public class ExecuteJsonNodeUtil {
 
         ExecuteNode executeNode = new JsonDynamicFlowExecuteEngine(flow);
 
+        executeNode.setNodeContext(nodeContext);
+
         executeNode.execute(nodeInput, nodeOutput);
 
-        String rawField = flow.getString("rawField");
-        if (isWebNode(flow) && rawField != null) {
-            Object returnValue = nodeOutput.getData().get(rawField);
+        String outputRawField = flow.getString("outputRawField");
+        if (StrUtil.isNotBlank(outputRawField)) {
+            Object returnValue = nodeOutput.getData().get(outputRawField);
             return (returnValue == null) ? "" : returnValue.toString();
         }
 
-        return nodeOutput.getData().toJSONString();
+        JSONObject result = nodeOutput.getData();
+        if (Boolean.TRUE.equals(flow.getBoolean("debug"))) {
+            Map<String, Object> context = nodeInput.getNodeContext().getAllAttribute();
+            context.remove(FIELD_NAME_OF_IDEA_PROJECT);
+            result = nodeOutput.getData().clone();
+            result.put("_debug", context);
+        }
+        return toJsonText(result);
     }
 
     public static Map<String, String> toStringMap(JSONObject jsonObject) {
@@ -342,15 +351,18 @@ public class ExecuteJsonNodeUtil {
      * @param request
      * @param httpParam
      */
-    public static void parseHttpFormParam(JsonExecuteNodeInput input, HttpRequest request, Object httpParam) {
+    public static Object parseHttpFormParam(JsonExecuteNodeInput input, HttpRequest request, Object httpParam) {
         if (httpParam != null) {
             Object param = ExpressUtil.eval(httpParam, input.getInputParamAndContextParam());
             if (param instanceof JSONObject) {
                 request.form((JSONObject) param);
+                return param;
             }
         } else {
             request.form(input.getData());
+            return input;
         }
+        return null;
     }
 
     /**
@@ -461,16 +473,38 @@ public class ExecuteJsonNodeUtil {
      * @return
      */
     public static String parseStringField(String fieldName, JsonExecuteNodeInput input, JSONObject nodeJsonDefine) {
-        String fieldValue = input.getString(fieldName);
-        if (StrUtil.isBlank(fieldValue)) {
-            fieldValue = nodeJsonDefine.getString(fieldName);
+        Object object = parseField(fieldName, input, nodeJsonDefine);
+        if (object == null) {
+            return null;
+        }
+        return object.toString();
+    }
+
+    /**
+     * 解析字段， 解析顺序：入参, 配置
+     *
+     * @param fieldName
+     * @param input
+     * @param nodeJsonDefine
+     * @return
+     */
+    public static Object parseField(String fieldName, JsonExecuteNodeInput input, JSONObject nodeJsonDefine) {
+        Object fieldValue = input.get(fieldName);
+        if (fieldValue == null) {
+            fieldValue = nodeJsonDefine.get(fieldName);
         }
         //尝试从上下文获取
-        if (StrUtil.isBlank(fieldValue) && input.getNodeContext().getAttribute(fieldName) != null) {
+        if (fieldValue == null && input.getNodeContext().getAttribute(fieldName) != null) {
             //TODO toString
-            fieldValue = input.getNodeContext().getAttribute(fieldName).toString();
+            fieldValue = input.getNodeContext().getAttribute(fieldName);
         }
-        return (String) ExpressUtil.eval(fieldValue, input.getInputParamAndContextParam());
+        JSONObject inputAndContextParam = input.getInputParamAndContextParam();
+
+        //把节点定义也放入解析
+        for (Map.Entry<String, Object> define : nodeJsonDefine.entrySet()) {
+            inputAndContextParam.putIfAbsent(define.getKey(), define.getValue());
+        }
+        return ExpressUtil.eval(fieldValue, inputAndContextParam);
     }
 
     /**
@@ -657,8 +691,44 @@ public class ExecuteJsonNodeUtil {
      * @param jsonObject
      * @return
      */
+    public static String toJsonText(JSONObject jsonObject) {
+        return jsonObject.toJSONString(JSONWriter.Feature.WriteMapNullValue);
+    }
+
+    /**
+     * 转换为json 文本
+     *
+     * @param jsonArray
+     * @return
+     */
+    public static String toJsonText(JSONArray jsonArray) {
+        return jsonArray.toJSONString(JSONWriter.Feature.WriteMapNullValue);
+    }
+
+    /**
+     * 转换为json 文本
+     *
+     * @param jsonObject
+     * @return
+     */
     public static String toJsonTextWithFormat(JSONObject jsonObject) {
         return jsonObject.toJSONString(JSONWriter.Feature.WriteMapNullValue, JSONWriter.Feature.PrettyFormat)
+                .replaceAll("\\t", "    ")
+                .replace("\":\"", "\": \"")
+                .replace("\":true", "\": true")
+                .replace("\":false", "\": false")
+                .replace("\":null", "\": null")
+                ;
+    }
+
+    /**
+     * 转换为json 文本
+     *
+     * @param jsonArray
+     * @return
+     */
+    public static String toJsonTextWithFormat(JSONArray jsonArray) {
+        return jsonArray.toJSONString(JSONWriter.Feature.WriteMapNullValue, JSONWriter.Feature.PrettyFormat)
                 .replaceAll("\\t", "    ")
                 .replace("\":\"", "\": \"")
                 .replace("\":true", "\": true")
@@ -719,5 +789,175 @@ public class ExecuteJsonNodeUtil {
      */
     public static Charset getFileCharset() {
         return Charset.forName(SystemUtil.getProps().getProperty("file.encoding", "UTF-8"));
+    }
+
+
+    /**
+     * 构建上下文参数
+     *
+     * @param projectPath
+     * @param file
+     * @return
+     */
+    public static JSONObject buildContextParam(String projectPath, File file) {
+        JSONObject contextParam = new JSONObject();
+
+        contextParam.put("projectPath", projectPath);
+
+        contextParam.put("fileDir", file.getParent());
+        String fileDirInProject = file.getParent().substring(projectPath.length());
+        contextParam.put("fileDirInProject", fileDirInProject);
+        contextParam.put("fileDirInProject1", "");
+        contextParam.put("fileDirInProject2", "");
+        contextParam.put("fileDirInProject3", "");
+        if (fileDirInProject.indexOf(File.separatorChar, 1) > 0) {
+            String fileDirInProject1 = fileDirInProject.substring(fileDirInProject.indexOf(File.separatorChar, 1));
+            contextParam.put("fileDirInProject1", fileDirInProject1);
+            if (fileDirInProject1.indexOf(File.separatorChar, 1) > 0) {
+                String fileDirInProject2 = fileDirInProject1.substring(fileDirInProject1.indexOf(File.separatorChar, 1));
+                contextParam.put("fileDirInProject2", fileDirInProject2);
+                if (fileDirInProject2.indexOf(File.separatorChar, 1) > 0) {
+                    contextParam.put("fileDirInProject3", fileDirInProject2.substring(fileDirInProject2.indexOf(File.separatorChar, 1)));
+                }
+            }
+        }
+
+        contextParam.put("filePath", file.getAbsolutePath());
+        contextParam.put("path", file.getAbsolutePath());
+        contextParam.put("fileName", file.getName());
+        contextParam.put("filePrefix", file.getName().split("\\.")[0]);
+        contextParam.put("fileSeparator", File.separator);
+        contextParam.put("pathSeparator", File.pathSeparator);
+
+        contextParam.put("charset", SystemUtil.get("file.encoding"));
+
+        String fileSuffix = "";
+        if (file.getName().contains(".")) {
+            fileSuffix = file.getName().split("\\.")[1];
+        }
+        contextParam.put("fileSuffix", fileSuffix);
+
+        contextParam.put("userHome", getUserHome());
+        return contextParam;
+    }
+
+    /**
+     * json的key按照字母顺序排列
+     *
+     * @param json
+     * @return
+     */
+    public static JSONObject sortJsonField(JSONObject json) {
+        return sortJsonField(json, false);
+    }
+
+    /**
+     * json的key按照字母顺序排列
+     *
+     * @param json
+     * @param isStruct 是否只保留数组的第一个元素
+     * @return
+     */
+    public static JSONObject sortJsonField(JSONObject json, boolean isStruct) {
+
+        if (json == null || json.isEmpty()) {
+            return json;
+        }
+
+        TreeMap<String, Object> map = new TreeMap<>();
+        for (Map.Entry<String, Object> entry : json.entrySet()) {
+            Object value = entry.getValue();
+            Object newVale = value;
+            if (value instanceof JSONObject) {
+                newVale = sortJsonField((JSONObject) value, isStruct);
+            } else if (value instanceof JSONArray) {
+                newVale = sortJsonField((JSONArray) value, isStruct);
+            } else {
+                if (isStruct) {
+                    if (value instanceof String) {
+                        newVale = "";
+                    } else if (value instanceof Integer || value instanceof BigInteger) {
+                        newVale = 0;
+                    } else if (value instanceof Number) {
+                        newVale = 0.0;
+                    } else if (value instanceof Boolean) {
+                        newVale = true;
+                    }
+                }
+            }
+            map.put(entry.getKey(), newVale);
+        }
+        return (JSONObject) JSON.toJSON(map, JSONWriter.Feature.WriteMapNullValue);
+    }
+
+    /**
+     * 遍历json数组
+     *
+     * @param array
+     * @return
+     */
+    public static JSONArray sortJsonField(JSONArray array) {
+        return sortJsonField(array, false);
+    }
+
+    /**
+     * 遍历json数组
+     *
+     * @param array
+     * @param keepOnlyOneItemInArray 是否只保留数组的第一个元素
+     * @return
+     */
+    public static JSONArray sortJsonField(JSONArray array, boolean keepOnlyOneItemInArray) {
+
+        if (array == null || array.isEmpty()) {
+            return array;
+        }
+
+        JSONArray newArray = new JSONArray(array.size());
+        for (Object item : array) {
+            Object newItem = item;
+            if (item instanceof JSONObject) {
+                newItem = sortJsonField((JSONObject) item, keepOnlyOneItemInArray);
+            } else if (item instanceof JSONArray) {
+                newItem = sortJsonField((JSONArray) item, keepOnlyOneItemInArray);
+            }
+            newArray.add(newItem);
+            if (keepOnlyOneItemInArray) {
+                break;
+            }
+        }
+
+        return newArray;
+    }
+
+    /**
+     * 获取json结构：排序，并且对于数组，只保留一个元素
+     *
+     * @param json
+     * @return
+     */
+    public static JSONObject getJsonStruct(JSONObject json) {
+        return sortJsonField(json, true);
+    }
+
+
+    /**
+     * 从多个字段中获取值
+     *
+     * @param nodeJsonDefine
+     * @param fields
+     * @return
+     */
+    public static String getWildlyField(JSONObject nodeJsonDefine, String[] fields) {
+
+        String path = "field";
+        for (String field : fields) {
+            path = nodeJsonDefine.getString(field);
+            if (StrUtil.isNotBlank(path)) {
+                break;
+            }
+        }
+
+        return path;
     }
 }

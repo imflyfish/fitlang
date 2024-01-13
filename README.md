@@ -87,15 +87,15 @@ FitServer 使用fit语言开发的中间件，相当于轻量级的Nginx，tomca
 
 - hello: hello world demo
 - echo: 原样返回入参
-- assert: 断言
-- set: 设置全局变量
-- sleep: 流程休眠节点
+- setGlobal: 设置全局变量
 - print: 控制台打印
+- log: IDE控制台输出
+- sleep: 流程休眠节点
 - perf: 耗时统计
+- replaceContent: 文本内容查找替换
 
-### json数据节点
+### json操作节点
 
-- add: 支持json相加
 - convert: 转换节点，支持json到json的转换，使用转换表达式
 - removeField: 移除json字段
 - removeEmptyField: 移除空字段
@@ -105,18 +105,33 @@ FitServer 使用fit语言开发的中间件，相当于轻量级的Nginx，tomca
 - parseJson: 解析json
 - stringifyJson: json转字符串
 - convertKeyValueList: key value list转换对象
+- get: 使用json path获取值 （json path语法说明：https://alibaba.github.io/fastjson2/jsonpath_cn）
+- set: 使用json path设置值
+- getStruct: 获取json结构
+- sortField: 按照字段排序（字母表升序）
+- add: 支持json相加
+- increase: 加+1
+- decrease: 减-1
 
 ### 流程节点（有child子节点）
 
 - sequence: 顺序执行节点
+- batch: 批量执行节点
 - pipe: 管道执行节点
-- foreach: 遍历json数组字段节点
+- foreach: 遍历数组或对象执行
 - loop: 循环执行节点，loopTimes制定执行次数
 - switch: 分支执行节点，switchField指定分支字段
 - return: 返回json
 - thread: 多线程执行
 - execute: 执行入参传递的流程
 - call: 引用节点执行
+- catch: 异常捕获，包含try节点和catch节点两个子节点
+- assert: 断言
+- node: 子流程
+
+### 函数
+- function: 函数
+- package: 包
 
 ### http节点
 
@@ -126,6 +141,8 @@ FitServer 使用fit语言开发的中间件，相当于轻量级的Nginx，tomca
 - httpGet: http get
 - httpPut: http put
 - httpDelete: http delete
+- httpHead: http head 
+- postman: postman
 
 ### Web节点
 
@@ -144,11 +161,19 @@ FitServer 使用fit语言开发的中间件，相当于轻量级的Nginx，tomca
 - systemInfo: 获取系统信息，基于oshi实现(信息字段(支持屏蔽)
   ：computerManufacturer,computerModel,processorName,processorPhysicalCount,processorLogicalCount,processorMaxFreq,memoryTotal,memoryAvailable,osManufacturer,osFamily,osVersion,osBit)
 - info: 获取系统信息，基于hutool SystemUtil实现(信息字段(支持屏蔽)
-  ：os,memory,jvm,host,runtime,javaSpec,jvm,user,properties)
+  ：os,memory,jvm,host,runtime,javaSpec,jvm,user,properties,env)
+
+### os节点
+- getClipboard: 读取剪贴板内容
+- setClipboard: 设置剪贴板内容
 
 ### 命令行
 
 - cmd: 命令行
+- zip: 压缩
+- unzip: 解压
+
+## 网络
 - telnet: telnet
 - telnets: telnets
 - telnet.http: telnet.http
@@ -162,3 +187,14 @@ FitServer 使用fit语言开发的中间件，相当于轻量级的Nginx，tomca
 - receiveClientMonitorData: 接收客户端监控数据
 - pushClientMonitorData: 推送监控数据
 - getMonitorClient: 获取监控客户端列表
+
+### IDE节点
+
+- readEditor: 获取当前编辑器内容
+- writeEditor: 写入当前编辑器内容
+
+## 🔋 JetBrains开源授权
+
+FitLang在JetBrains公司的免费开源授权下，通过IDEA IDE开发，在此表达我的感谢。
+
+<a href="https://jb.gg/OpenSourceSupport" target="_blank"><img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo (Main) logo." width="300"></a>

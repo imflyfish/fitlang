@@ -1,5 +1,4 @@
 {
-    "flag": "needFormatJsonInConsoleFlag",
     "input": {
         "workspaceDir": "/opt/github/fitlang/fitlang-server/demo/fitserver"
     },
@@ -8,10 +7,6 @@
         {
             "uni": "readFile",
             "filePath": "/app/first.fit"
-        },
-        {
-            "uni": "parseJson",
-            "jsonField": "content"
         },
         {
             "uni": "writeFile",

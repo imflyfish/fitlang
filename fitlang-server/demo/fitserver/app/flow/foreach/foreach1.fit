@@ -1,0 +1,17 @@
+{
+    "input": {
+        "list": [
+            "a",
+            "b"
+        ]
+    },
+    "uni": "foreach",
+    "foreachField": "list",
+    "indexName": "foreachIndex",
+    "child": {
+        "uni": "mix",
+        "json": {
+            "loopIndex": "${foreachIndex}"
+        }
+    }
+}

@@ -1,39 +1,46 @@
 package my.lang.action;
 
-import cn.hutool.core.io.CharsetDetector;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.system.SystemUtil;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.alibaba.fastjson2.JSONWriter;
 import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.execution.ui.ConsoleViewContentType;
+import com.intellij.find.SearchReplaceComponent;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.ui.content.Content;
 import fit.lang.plugin.json.ExecuteJsonNodeUtil;
 import fit.lang.plugin.json.function.JsonPackageExecuteNode;
+import fit.lang.plugin.json.ide.UserIdeInterface;
+import fit.lang.plugin.json.ide.UserIdeManager;
+import fit.lang.plugin.json.util.ExecuteNodeLogActionable;
+import fit.lang.plugin.json.util.LogJsonExecuteNode;
 import fit.lang.plugin.json.web.ServerJsonExecuteNode;
 
+import java.awt.*;
 import java.io.File;
 import java.io.InputStream;
 import java.lang.reflect.Method;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 
 import static fit.lang.ExecuteNodeUtil.getRootException;
+import static fit.lang.plugin.json.ExecuteJsonNodeConst.FIELD_NAME_OF_IDEA_PROJECT;
 import static fit.lang.plugin.json.ExecuteJsonNodeUtil.*;
 import static my.lang.MyLanguage.isMyLanguageFile;
 
@@ -62,7 +69,6 @@ public abstract class RunCodeAction extends AnAction {
     public abstract String getLogoString();
 
     protected RunCodeAction() {
-
     }
 
     protected RunCodeAction(String title) {
@@ -96,6 +102,9 @@ public abstract class RunCodeAction extends AnAction {
         List<String> filePathList = new ArrayList<>();
 
         final Editor editor = e.getData(CommonDataKeys.EDITOR);
+
+        implementIdeOperator(e);
+
         VirtualFile[] virtualFiles = e.getData(PlatformDataKeys.VIRTUAL_FILE_ARRAY);
 
         boolean needShowFile = false;
@@ -139,50 +148,73 @@ public abstract class RunCodeAction extends AnAction {
         }
 
         boolean finalNeedShowFile = needShowFile;
-        threadPoolExecutor.submit(() -> {
 
-            for (String path : filePathList) {
-                String code = readNodeDefineFile(path);
+        if (filePathList.size() == 1 && isSynchronize(filePathList.get(0))) {
+            execute(e, project, filePathList, finalNeedShowFile);
+        } else {
+            threadPoolExecutor.submit(() -> {
+                execute(e, project, filePathList, finalNeedShowFile);
+            });
+        }
+    }
 
-                String result;
-                try {
+    private static boolean isSynchronize(String filePath) {
+        String content = readNodeDefineFile(filePath);
+        return content.contains("open") || content.contains("show");
+    }
 
-                    if (finalNeedShowFile) {
-                        print("run file: " + path + "\n", project, getProjectConsoleViewMap());
-                    }
+    private void execute(AnActionEvent e, Project project, List<String> filePathList, boolean finalNeedShowFile) {
+        for (String path : filePathList) {
+            String code = readNodeDefineFile(path);
 
-                    String projectPath = e.getProject() == null ? "" : e.getProject().getBasePath();
+            String result;
+            try {
 
-                    Object resultObject = executeCode(code, path, projectPath);
-
-                    result = resultObject.toString();
-
-                } catch (Throwable exception) {
-                    exception.printStackTrace();
-                    result = "exception:" + getRootException(exception);
+                if (finalNeedShowFile) {
+                    print("run file: " + path + "\n", project, getProjectConsoleViewMap());
                 }
 
-                System.out.println("execute " + getLanguageName() + " code result:");
-                System.out.println(result);
+                String projectPath = e.getProject() == null ? "" : e.getProject().getBasePath();
 
-                print(result.concat("\n\n"), project, getProjectConsoleViewMap());
+                //支持中间输出
+                LogJsonExecuteNode.setPrintable(new ExecuteNodeLogActionable() {
+                    @Override
+                    public void print(Object info) {
+                        if (info == null) {
+                            info = "";
+                        }
+                        String infoText;
+                        if (info instanceof Map || info instanceof List) {
+                            infoText = toJsonTextWithFormat(JSONObject.from(info));
+                        } else {
+                            infoText = info.toString();
+                        }
+                        RunCodeAction.print(infoText + "\n", project, getProjectConsoleViewMap());
+                    }
+                });
+                Object resultObject = executeCode(code, path, projectPath, project);
 
+                result = resultObject.toString();
+
+            } catch (Throwable exception) {
+                exception.printStackTrace();
+                result = "exception:" + getRootException(exception);
             }
-        });
+
+            System.out.println("execute " + getLanguageName() + " code result:");
+            System.out.println(result);
+
+            print(result.concat("\n\n"), project, getProjectConsoleViewMap());
+
+
+        }
     }
 
     private static boolean needFormatJsonInConsole(String code) {
-        return code.contains("\"_needFormatJsonInConsole\"")
-                || code.contains("needFormatJsonInConsoleFlag")
-                || code.contains("GET http")
-                || code.contains("POST http")
-                || code.contains("PUT http")
-                || code.contains("HEAD http")
-                || code.contains("DELETE http")
-                ;
+        return true; //默认IDE执行的全部格式化
     }
 
-    String executeCode(String code, String codePath, String projectPath) {
+    String executeCode(String code, String codePath, String projectPath, Project project) {
 
         File file = new File(codePath);
         if (!file.exists()) {
@@ -193,6 +225,8 @@ public abstract class RunCodeAction extends AnAction {
         JsonPackageExecuteNode.addImportPath(ServerJsonExecuteNode.getServerFileDir());
 
         JSONObject contextParam = buildContextParam(projectPath, file);
+
+        contextParam.put(FIELD_NAME_OF_IDEA_PROJECT, project);
 
         String fileName = file.getName();
 
@@ -208,13 +242,8 @@ public abstract class RunCodeAction extends AnAction {
             result = ExecuteJsonNodeUtil.executeCode(code, contextParam);
             needFormatJsonInConsole = needFormatJsonInConsole(code);
         } else if (fileSuffix != null && supportLanguageMap.containsKey(fileSuffix)) {
-            Charset charset = CharsetDetector.detect(file, characters);
-            contextParam.put("charset", charset.name());
 
             result = runLanguageFile(fileSuffix, contextParam);
-
-            //文件字符集转换为操作系统默认字符集
-            result = new String(result.getBytes(charset));
 
             needFormatJsonInConsole = true;
         } else {
@@ -222,78 +251,19 @@ public abstract class RunCodeAction extends AnAction {
         }
 
         if (needFormatJsonInConsole && isJsonObjectText(result)) {
-            result = JSONObject.parse(result).toJSONString(JSONWriter.Feature.PrettyFormat);
+            result = toJsonTextWithFormat(JSONObject.parse(result));
         }
 
         return result;
     }
 
-    static Charset[] characters = new Charset[]{
-            StandardCharsets.UTF_8,
-            StandardCharsets.UTF_8,
-            Charset.forName("ISO8859-1"),
-    };
-
-    static {
-        try {
-            characters[1] = Charset.forName("GBK");
-        } catch (Exception e) {
-            //ignore
-        }
-    }
-
-    static JSONObject buildContextParam(String projectPath, File file) {
-        JSONObject contextParam = new JSONObject();
-
-        contextParam.put("projectPath", projectPath);
-
-        contextParam.put("fileDir", file.getParent());
-        String fileDirInProject = file.getParent().substring(projectPath.length());
-        contextParam.put("fileDirInProject", fileDirInProject);
-        contextParam.put("fileDirInProject1", "");
-        contextParam.put("fileDirInProject2", "");
-        contextParam.put("fileDirInProject3", "");
-        if (fileDirInProject.indexOf(File.separatorChar, 1) > 0) {
-            String fileDirInProject1 = fileDirInProject.substring(fileDirInProject.indexOf(File.separatorChar, 1));
-            contextParam.put("fileDirInProject1", fileDirInProject1);
-            if (fileDirInProject1.indexOf(File.separatorChar, 1) > 0) {
-                String fileDirInProject2 = fileDirInProject1.substring(fileDirInProject1.indexOf(File.separatorChar, 1));
-                contextParam.put("fileDirInProject2", fileDirInProject2);
-                if (fileDirInProject2.indexOf(File.separatorChar, 1) > 0) {
-                    contextParam.put("fileDirInProject3", fileDirInProject2.substring(fileDirInProject2.indexOf(File.separatorChar, 1)));
-                }
-            }
-        }
-
-        contextParam.put("filePath", file.getAbsolutePath());
-        contextParam.put("path", file.getAbsolutePath());
-        contextParam.put("fileName", file.getName());
-        contextParam.put("filePrefix", file.getName().split("\\.")[0]);
-        contextParam.put("fileSeparator", File.separator);
-        contextParam.put("pathSeparator", File.pathSeparator);
-
-        if (file.getName().contains(".")) {
-            contextParam.put("fileSuffix", file.getName().split("\\.")[1]);
-        }
-        contextParam.put("userHome", SystemUtil.getProps().get("user.home"));
-        return contextParam;
-    }
-
-    static JSONObject supportLanguageMap = new JSONObject();
-
-    static String supportLanguageFileDir = "";
-
-    static {
-        supportLanguageMap.put("java", "");
-        supportLanguageMap.put("go", "");
-        supportLanguageMap.put("js", "");
-        supportLanguageMap.put("rs", "");
-        supportLanguageMap.put("py", "");
-    }
+    static Map<String, JSONObject> supportLanguageMap = new HashMap<>();
 
     String runLanguageFile(String fileType, JSONObject contextParam) {
-        String fitPath = "fit/plugin/code/".concat(fileType).concat(".fit");
-        String result = runFitFile(fitPath, contextParam);
+
+        JSONObject script = supportLanguageMap.get(fileType);
+
+        String result = ExecuteJsonNodeUtil.executeCode(new JSONObject(), script, contextParam);
         if (isJsonObjectText(result)) {
             JSONObject resultJson = JSONObject.parseObject(result);
             JSONArray lines;
@@ -344,6 +314,7 @@ public abstract class RunCodeAction extends AnAction {
         consoleView.allowHeavyFilters();
         Content content = toolWindow.getContentManager().getFactory().createContent(consoleView.getComponent(), languageName, false);
         toolWindow.getContentManager().addContent(content);
+        toolWindow.getContentManager().setSelectedContent(content);
         consoleView.print(logoString + "\n", ConsoleViewContentType.NORMAL_OUTPUT);
     }
 
@@ -360,8 +331,8 @@ public abstract class RunCodeAction extends AnAction {
 
     static void scrollToEnd(ConsoleView consoleView) {
         try {
-            Method method = ConsoleView.class.getMethod("requestScrollingToEnd", new Class[0]);
-            method.invoke(consoleView, new Object[0]);
+            Method method = ConsoleView.class.getMethod("requestScrollingToEnd");
+            method.invoke(consoleView);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -379,5 +350,104 @@ public abstract class RunCodeAction extends AnAction {
             return false;
         }
         return fileName.contains(".");
+    }
+
+    /**
+     * IDE 操作实现
+     *
+     * @param actionEvent
+     */
+    public static void implementIdeOperator(AnActionEvent actionEvent) {
+        /**
+         *
+         */
+        UserIdeManager.setUserIdeInterface(new UserIdeInterface() {
+
+            Editor getEditor() {
+                return actionEvent.getData(CommonDataKeys.EDITOR);
+            }
+
+            SearchReplaceComponent getSearchReplaceComponent() {
+                Component headerComponent = getEditor().getHeaderComponent();
+
+                if (headerComponent instanceof SearchReplaceComponent) {
+                    return (SearchReplaceComponent) headerComponent;
+                }
+                return null;
+            }
+
+            @Override
+            public String readEditorContent() {
+                return getEditor().getDocument().getText();
+            }
+
+            @Override
+            public void writeEditorContent(String content) {
+
+                WriteCommandAction.runWriteCommandAction(getEditor().getProject(), new Runnable() {
+                    @Override
+                    public void run() {
+                        getEditor().getDocument().setText(content);
+                    }
+                });
+            }
+
+            public void openWebPage(String url, JSONObject option, JSONObject context) {
+
+                WebPagePanel webPagePanel = new WebPagePanel(url, option, context);
+                webPagePanel.show();
+
+            }
+
+            @Override
+            public void showNodeConfig(JSONObject config, Project project) {
+                NodeConfigPanel.nodeConfigPanel.resetConfig(config, project);
+            }
+
+            @Override
+            public JSONObject getNodeConfig() {
+                return NodeConfigPanel.nodeConfigPanel.readConfig();
+            }
+
+            @Override
+            public void showInfoMessage(String title, String message) {
+                Messages.showInfoMessage(message, title);
+            }
+
+            @Override
+            public void showErrorDialog(String title, String message) {
+                Messages.showErrorDialog(message, title);
+            }
+
+            @Override
+            public String showInputDialog(String title, String message) {
+                return Messages.showInputDialog(message, title, null);
+            }
+
+            @Override
+            public int showOkCancelDialog(String title, String message, String okText, String cancelText) {
+                return Messages.showOkCancelDialog(message, title, okText, cancelText, null);
+            }
+
+            public String readEditorSearchContent() {
+                SearchReplaceComponent searchReplaceComponent = getSearchReplaceComponent();
+
+                if (searchReplaceComponent != null) {
+                    return searchReplaceComponent.getSearchTextComponent().getText();
+                }
+                return "!!!ERROR: editor search component not open!!!";
+            }
+
+            public String readEditorReplaceContent() {
+
+                SearchReplaceComponent searchReplaceComponent = getSearchReplaceComponent();
+
+                if (searchReplaceComponent != null) {
+                    return searchReplaceComponent.getReplaceTextComponent().getText();
+                }
+                return "!!!ERROR: editor replace component not open!!!";
+            }
+
+        });
     }
 }

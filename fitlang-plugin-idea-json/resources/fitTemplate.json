@@ -1,18 +1,28 @@
 {
     "template": [
         {
-            "flag": "needFormatJsonInConsoleFlag"
+            "debug": "true"
+        },
+        {
+            "outputRawField": "fieldName"
         },
         {
             "uni": "hello"
         },
         {
-            "uni": "hello",
-            "who": "world"
+            "uni": "get",
+            "path": "foo"
         },
         {
-            "uni": "hello",
-            "message": "hello, fit!"
+            "uni": "set",
+            "path": "foo",
+            "value": "bar"
+        },
+        {
+            "uni": "getStruct"
+        },
+        {
+            "uni": "sortField"
         },
         {
             "uni": "increase",
@@ -47,12 +57,9 @@
             ]
         },
         {
-            "uni": "set",
+            "uni": "setGlobal",
             "key": "keyName",
-            "value": "value",
-            "copyField": [
-                "fieldName"
-            ]
+            "value": "value"
         },
         {
             "uni": "sleep",
@@ -61,6 +68,18 @@
         {
             "uni": "perf",
             "child": {}
+        },
+        {
+            "uni": "print",
+            "info": {
+                "foo": "bar"
+            }
+        },
+        {
+            "uni": "log",
+            "info": {
+                "foo": "bar"
+            }
         },
         {
             "uni": "convert",
@@ -289,7 +308,7 @@
         },
         {
             "uni": "web",
-            "rawField": "html",
+            "outputRawField": "html",
             "child": {
                 "uni": "return",
                 "json": {
@@ -299,18 +318,51 @@
         },
         {
             "uni": "readFile",
-            "workspaceDir": "dir",
-            "filePath": "/app/first.fit"
+            "filePath": "/app/first.fit",
+            "contentField": "content",
+            "charset": "UTF-8"
         },
         {
             "uni": "writeFile",
-            "workspaceDir": "dir",
-            "filePath": "/app/first.fit"
+            "filePath": "/app/first.fit",
+            "contentField": "content",
+            "charset": "UTF-8",
+            "format": false
         },
         {
             "uni": "deleteFile",
-            "workspaceDir": "dir",
             "filePath": "/app/first.fit"
+        },
+        {
+            "uni": "readEditor",
+            "contentField": "content"
+        },
+        {
+            "uni": "writeEditor",
+            "contentField": "content",
+            "format": false
+        },
+        {
+            "uni": "readEditorSearch",
+            "contentField": "content"
+        },
+        {
+            "uni": "readEditorReplace",
+            "contentField": "content"
+        },
+        {
+            "uni": "showConfig",
+            "config": {
+                "foo": "bar"
+            }
+        },
+        {
+            "uni": "readConfig",
+            "configField": "config"
+        },
+        {
+            "uni": "openWebPage",
+            "url": "https://www.baidu.com"
         },
         {
             "uni": "systemInfo",
@@ -348,6 +400,7 @@
         {
             "uni": "cmd",
             "cmd": "echo hello fit",
+            "charset": "UTF-8",
             "env": {
             },
             "option": {
@@ -429,7 +482,12 @@
         {
             "uni": "postman",
             "method": "POST",
+            "isPostForm": false,
             "url": "http://fit.321zou.com/echo",
+            "cookieDomain": "fit.321zou.com",
+            "retryTimes": 0,
+            "retrySleep": 0.5,
+            "retryCondition": "true",
             "proxy": {
                 "host": "",
                 "port": 8888
@@ -442,8 +500,23 @@
             },
             "body": {
                 "hello": "world"
-            },
-            "flag": "needFormatJsonInConsoleFlag"
+            }
+        },
+        {
+            "uni": "getClipboard",
+            "contentField": "content"
+        },
+        {
+            "uni": "setClipboard",
+            "contentField": "content"
+        },
+        {
+            "uni": "replaceContent",
+            "find": "[a-z]+",
+            "replace": "123",
+            "isRegexp": true,
+            "contentField": "content",
+            "content": "abc456"
         }
     ]
 }

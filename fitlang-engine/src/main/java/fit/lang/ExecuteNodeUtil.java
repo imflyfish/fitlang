@@ -1,10 +1,12 @@
 package fit.lang;
 
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.system.SystemUtil;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import fit.lang.plugin.json.JsonDynamicFlowExecuteEngine;
 import fit.lang.common.AbstractExecuteNode;
 import fit.lang.define.base.ExecuteNode;
+import fit.lang.plugin.json.JsonDynamicFlowExecuteEngine;
 
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
@@ -15,6 +17,10 @@ import java.util.UUID;
  * 工具类
  */
 public class ExecuteNodeUtil {
+
+    static String DATE_FORMAT_TIMESTAMP = "yyyy-MM-dd HH:mm:ss.SSS";
+
+    static String DATE_FORMAT_DATETIME = "yyyy-MM-dd HH:mm:ss";
 
     /**
      * uuid
@@ -31,7 +37,7 @@ public class ExecuteNodeUtil {
      * @return
      */
     public static String getTimestamp() {
-        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
+        return getNow(DATE_FORMAT_TIMESTAMP);
     }
 
     /**
@@ -40,11 +46,49 @@ public class ExecuteNodeUtil {
      * @return
      */
     public static String getNow() {
-        return getNow("yyyy-MM-dd HH:mm:ss");
+        return getNow(DATE_FORMAT_DATETIME);
     }
 
+    /**
+     * 获取当前时间，并且格式化
+     *
+     * @param format
+     * @return
+     */
     public static String getNow(String format) {
-        return new SimpleDateFormat(format).format(new Date());
+        return format(System.currentTimeMillis(), format);
+    }
+
+    /**
+     * 日期对象格式化
+     *
+     * @param date
+     * @param format
+     * @return
+     */
+    public static String format(Date date, String format) {
+        return new SimpleDateFormat(format).format(date);
+    }
+
+    /**
+     * 对毫秒数格式化
+     *
+     * @param time
+     * @param format
+     * @return
+     */
+    public static String format(long time, String format) {
+        return format(new Date(time), format);
+    }
+
+    /**
+     * 对毫秒数格式化
+     *
+     * @param time
+     * @return
+     */
+    public static String formatTimestamp(long time) {
+        return format(new Date(time), DATE_FORMAT_TIMESTAMP);
     }
 
     public static void setExecuteNodeCommonAttribute(ExecuteNode executeNode, JSONObject nodeDefine) {
@@ -56,8 +100,9 @@ public class ExecuteNodeUtil {
     }
 
     public static void buildDefaultNodeId(ExecuteNode executeNode) {
-        if (executeNode.getId() == null) {
-            executeNode.setId(uuid());
+        String nextId = executeNode.getNodeContext().buildNextNodeId(executeNode.getUni());
+        if (StrUtil.isBlank(executeNode.getId())) {
+            executeNode.setId(nextId);
             if (executeNode.getNodeDefine() != null && executeNode.getNodeDefine().getData() instanceof JSONObject) {
                 ((JSONObject) executeNode.getNodeDefine().getData()).put(ExecuteNodeEngineConst.DEFINE_KEYWORDS_OF_ID, executeNode.getId());
             }
@@ -123,10 +168,9 @@ public class ExecuteNodeUtil {
         if (e == null) {
             return "";
         }
-        StringBuilder builder = new StringBuilder();
-        builder.append(e.getMessage()).append("(");
-        builder.append(getAllException(e.getCause())).append(")");
-        return builder.toString();
+        String builder = e.getMessage() + "(" +
+                getAllException(e.getCause()) + ")";
+        return builder;
     }
 
     /**
@@ -141,4 +185,23 @@ public class ExecuteNodeUtil {
         }
         return e.getMessage();
     }
+
+    /**
+     * 获取user home 路径
+     *
+     * @return
+     */
+    public static String getUserHome() {
+        String userHome = "";
+
+        if (StrUtil.isBlank(userHome)) {
+            userHome = SystemUtil.get("user.home");
+        }
+
+        if (StrUtil.isBlank(userHome)) {
+            userHome = SystemUtil.get("HOME");
+        }
+        return userHome;
+    }
+
 }

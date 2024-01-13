@@ -1,12 +1,11 @@
 package my.lang.action;
 
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.alibaba.fastjson2.JSONWriter;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.CommonDataKeys;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.extensions.PluginId;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import fit.lang.plugin.json.ExecuteJsonNodeUtil;
@@ -16,7 +15,7 @@ import java.io.File;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import static fit.lang.ExecuteNodeUtil.getRootException;
-import static fit.lang.plugin.json.ExecuteJsonNodeUtil.isJsonObjectText;
+import static fit.lang.plugin.json.ExecuteJsonNodeUtil.*;
 import static my.lang.MyLanguage.LANG_NAME;
 import static my.lang.MyLanguage.LANG_STRING_LOGO;
 
@@ -25,22 +24,48 @@ import static my.lang.MyLanguage.LANG_STRING_LOGO;
  */
 public class FitLangPluginAction extends ScriptRunCodeAction {
 
-    String name;
+    PluginActionConfig actionConfig;
 
-    JSONObject script;
+    protected FitLangPluginAction(JSONObject config) {
+        super(config.getOrDefault("title", config.getString("name")).toString());
 
-    protected FitLangPluginAction(String name, String title, JSONObject script) {
-        super(title);
-        this.name = name;
-        this.script = script;
+        actionConfig = new PluginActionConfig(config);
+//
+        //兼容问题; TODO
+//        if (StrUtil.isNotBlank(actionConfig.shortCut1)) {
+//            KeyStroke firstKeyStroke = KeyStroke.getKeyStroke(actionConfig.shortCut1);
+//            KeyStroke secondKeyStroke = null;
+//            if (StrUtil.isNotBlank(actionConfig.shortCut2)) {
+//                secondKeyStroke = KeyStroke.getKeyStroke(actionConfig.shortCut2);
+//            }
+//            KeyboardShortcut keyboardShortcut = new KeyboardShortcut(firstKeyStroke, secondKeyStroke);
+//            setShortcutSet(new CustomShortcutSet(keyboardShortcut));
+//        }
+    }
+
+    /**
+     * 注册action
+     *
+     * @param actionId
+     * @param action
+     */
+    public static void registerAction(String actionId, AnAction action) {
+        ActionManager actionManager = ActionManager.getInstance();
+        if (actionManager.getAction(actionId) == null) {
+            try {
+                actionManager.registerAction(actionId, action, PluginId.getId("FitLang"));
+            } catch (Exception e) {
+                //ignore todo
+            }
+        }
     }
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        actionPerformedInner(e, threadPoolExecutor, script);
+        actionPerformedInner(e, threadPoolExecutor, actionConfig);
     }
 
-    static void actionPerformedInner(AnActionEvent e, ThreadPoolExecutor threadPoolExecutor, JSONObject actionScript) {
+    static void actionPerformedInner(AnActionEvent e, ThreadPoolExecutor threadPoolExecutor, PluginActionConfig actionConfig) {
 
         final Project project = e.getProject();
 
@@ -52,6 +77,9 @@ public class FitLangPluginAction extends ScriptRunCodeAction {
         }
 
         final Editor editor = e.getData(CommonDataKeys.EDITOR);
+
+        implementIdeOperator(e);
+
         VirtualFile[] virtualFiles = e.getData(PlatformDataKeys.VIRTUAL_FILE_ARRAY);
 
         VirtualFile virtualFile = e.getData(CommonDataKeys.VIRTUAL_FILE);
@@ -75,15 +103,30 @@ public class FitLangPluginAction extends ScriptRunCodeAction {
 
                 ServerJsonExecuteNode.setCurrentServerFilePath(filePath);
 
-                result = ExecuteJsonNodeUtil.executeCode(null, actionScript, contextParam);
+                result = ExecuteJsonNodeUtil.executeCode(null, actionConfig.getScript(), contextParam);
 
                 if (isJsonObjectText(result)) {
-                    result = JSON.parseObject(result).toJSONString(JSONWriter.Feature.PrettyFormat);
+                    JSONObject jsonObject = JSON.parseObject(result);
+                    if (jsonObject.get("_raw") != null) {
+                        Object raw = jsonObject.get("_raw");
+                        if (raw instanceof JSONArray) {
+                            result = toJsonTextWithFormat((JSONArray) raw);
+                        } else {
+                            result = raw.toString();
+                        }
+                    } else {
+                        result = toJsonTextWithFormat(jsonObject);
+                    }
                 }
 
                 print(result + "\n\n", project, projectConsoleViewMap);
 
-                finalVirtualFile.getParent().refresh(false, false);
+                if (actionConfig.isRefreshParent()) {
+                    finalVirtualFile.getParent().refresh(false, false);
+                }
+                if (actionConfig.isRefresh()) {
+                    finalVirtualFile.refresh(false, false);
+                }
 
             } catch (Exception exception) {
                 exception.printStackTrace();

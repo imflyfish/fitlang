@@ -40,6 +40,9 @@ public class JsonForeachExecuteNode extends ForeachExecuteNode implements Execut
         setForeachField(nodeDefine.getString(DEFINE_KEYWORDS_OF_FOREACH_FIELD_NAME));
         setParallelism(nodeDefine.getInteger("parallelism"));
         setPipe(nodeDefine.getBoolean("isPipe"));
+        if (nodeDefine.getString("indexName") != null) {
+            setIndexName(nodeDefine.getString("indexName"));
+        }
 
         ExecuteNodeUtil.buildChildNode(this, nodeDefine);
     }
@@ -96,7 +99,7 @@ public class JsonForeachExecuteNode extends ForeachExecuteNode implements Execut
     Map<JSONObject, JSONArray> cache = new HashMap<>();
 
     JSONArray buildKeyValueList(JSONObject jsonObject) {
-        if (cache.keySet().contains(jsonObject)) {
+        if (cache.containsKey(jsonObject)) {
             return cache.get(jsonObject);
         }
         JSONArray list = new JSONArray();

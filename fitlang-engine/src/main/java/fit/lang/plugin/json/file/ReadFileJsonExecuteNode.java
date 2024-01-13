@@ -13,6 +13,7 @@ import fit.lang.plugin.json.define.JsonExecuteNodeOutput;
 import java.io.File;
 import java.util.List;
 
+import static fit.lang.plugin.json.ExecuteJsonNodeUtil.isJsonObjectText;
 import static fit.lang.plugin.json.ExecuteJsonNodeUtil.joinFilePath;
 
 /**
@@ -27,7 +28,8 @@ public class ReadFileJsonExecuteNode extends JsonExecuteNode {
         String workspaceDir = parseStringField("workspaceDir", input);
 
         String path = parseStringField("filePath", input);
-        String charset = parseStringField("charset", input);
+        String charset = nodeJsonDefine.getString("charset");
+        String contentField = parseStringField("contentField", input);
 
         if (StrUtil.isBlank(workspaceDir)) {
 //            throw new ExecuteNodeException("writeFile workspaceDir param is required!");
@@ -52,7 +54,16 @@ public class ReadFileJsonExecuteNode extends JsonExecuteNode {
         if (file.isFile()) {
             output.set("isFile", true);
             String content = FileUtil.readString(filePath, CharsetUtil.charset(charset));
-            output.set("content", content);
+            if (StrUtil.isBlank(contentField) && isJsonObjectText(content)) {
+                output.setData(JSONObject.parse(content));
+            } else {
+
+                if (StrUtil.isBlank(contentField)) {
+                    contentField = "content";
+                }
+
+                output.set(contentField, content);
+            }
         } else {
             output.set("isFile", false);
             List<String> fileNames = FileUtil.listFileNames(filePath);

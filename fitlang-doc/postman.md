@@ -1,10 +1,9 @@
-### postman
+### postman节点
 
 基本实现了postman类似功能，调用方式如下：
 
 ```
 {
-    "flag": "needFormatJsonInConsoleFlag",
     "uni": "postman",
     "method": "POST",
     "url": "http://fit.321zou.com/echo",
@@ -49,8 +48,10 @@
 		"Date":"Sat, 16 Dec 2023 14:44:00 GMT",
 		"Content-Type":"application/json"
 	},
-	"cookie":[
+	"cookieList":[
 	],
+	"cookieObject":{
+	}
 	"sizeInfo":{
 		"header":154,
 		"body":29
@@ -109,7 +110,7 @@ fitlang-project-plugin/plugins/default/plugin.fit
             }
         },
         {
-            "uni": "set",
+            "uni": "setGlobal",
             "key": "collectionName",
             "value": "${collectionName}"
         },
@@ -136,7 +137,7 @@ fitlang-project-plugin/plugins/default/plugin.fit
                                 "uni": "pipe",
                                 "child": [
                                     {
-                                        "uni": "set",
+                                        "uni": "setGlobal",
                                         "key": "contentType",
                                         "value": "${this.?request.?body.?urlencoded!=null?'application/x-www-form-urlencoded':''}"
                                     },
@@ -144,7 +145,6 @@ fitlang-project-plugin/plugins/default/plugin.fit
                                         "uni": "convert",
                                         "express": {
                                             "name": "${name}",
-                                            "content.flag": "needFormatJsonInConsoleFlag",
                                             "content.name": "${name}",
                                             "content.uni": "postman",
                                             "content.method": "${request.method}",

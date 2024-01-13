@@ -13,7 +13,7 @@ public class SequenceJsonExecuteNodeTest extends TestCase {
                 "    'bagsName': 'array'," +
                 "    'child': [" +
                 "       {" +
-                "           'uni': 'set'," +
+                "           'uni': 'setGlobal'," +
                 "           'key': 'data'," +
                 "           'value':{" +
                 "               'hello':'world'" +
@@ -31,7 +31,7 @@ public class SequenceJsonExecuteNodeTest extends TestCase {
         String output = ExecuteJsonNodeUtil.executeCode("{}", flow);
 
         System.out.println(output);
-        Assert.assertEquals("{\"array\":[{\"data\":{\"hello\":\"world\"}},{\"data\":{\"hello\":\"world\"},\"hello\":\"world\"}]}", output);
+        Assert.assertEquals("{\"array\":[{},{\"hello\":\"world\"}]}", output);
 
     }
 }

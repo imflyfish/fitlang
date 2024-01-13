@@ -1,0 +1,7 @@
+{
+    "input": {
+        "foo": 1
+    },
+    "uni": "get",
+    "path": "foo"
+}

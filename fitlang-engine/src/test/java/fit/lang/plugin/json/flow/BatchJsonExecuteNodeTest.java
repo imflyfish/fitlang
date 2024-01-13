@@ -11,7 +11,7 @@ public class BatchJsonExecuteNodeTest extends TestCase {
                 "    'uni': 'batch'," +
                 "    'child': [" +
                 "       {" +
-                "           'uni': 'set'," +
+                "           'uni': 'setGlobal'," +
                 "           'key': 'data'," +
                 "           'value':{" +
                 "               'hello':'world'" +
@@ -30,7 +30,7 @@ public class BatchJsonExecuteNodeTest extends TestCase {
         String output = ExecuteJsonNodeUtil.executeCode("{}", flow);
 
         System.out.println(output);
-        Assert.assertEquals("{\"list\":[{\"data\":{\"hello\":\"world\"}},{\"data\":{\"hello\":\"world\"},\"hello\":\"world\"}]}", output);
+        Assert.assertEquals("{\"list\":[{},{\"hello\":\"world\"}]}", output);
 
     }
 }

@@ -1,32 +1,130 @@
 {
+    "enable": true,
+    "debug": true,
     "uni": "hello",
     "message": "This is a plugin define file!",
-    "debug": true,
     "groups": [
         {
             "name": "FitActionGroup0",
             "title": "Fit Hello",
-            "script": {
-                "uni": "hello",
-                "who": "fit"
-            }
+            "actions": [
+                {
+                    "title": "Fit Hello",
+                    "visible": true,
+                    "script": {
+                        "uni": "hello",
+                        "who": "fit"
+                    }
+                }
+            ]
         },
         {
             "name": "FitActionGroup1",
+            "title": "Run Code",
+            "visible": true,
+            "actions": [
+                {
+                    "name": "java",
+                    "title": "Java",
+                    "script": {
+                        "uni": "batch",
+                        "child": [
+                            {
+                                "uni": "cmd:javac",
+                                "option": {
+                                    "-encoding": "UTF-8"
+                                },
+                                "target": "${fileName}",
+                                "param": {
+                                }
+                            },
+                            {
+                                "uni": "cmd:java",
+                                "option": {
+                                },
+                                "target": "${filePrefix}",
+                                "param": {
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "go",
+                    "title": "Go",
+                    "script": {
+                        "uni": "cmd:go",
+                        "env": {
+                            "GOPATH": "${fileDir}",
+                            "GOCACHE": "${userHome+'/go/cache'}"
+                        },
+                        "target": "run",
+                        "param": "${fileName}",
+                        "comment": "count install https://github.com/golang/go/issues/27921"
+                    }
+                },
+                {
+                    "name": "js",
+                    "title": "JavaScript",
+                    "script": {
+                        "uni": "cmd:node",
+                        "target": "${fileName}"
+                    }
+                },
+                {
+                    "name": "py",
+                    "title": "Python3",
+                    "script": {
+                        "uni": "cmd:python3",
+                        "target": "${fileName}"
+                    }
+                },
+                {
+                    "name": "python2",
+                    "title": "Python2",
+                    "script": {
+                        "uni": "cmd:python",
+                        "target": "${fileName}"
+                    }
+                },
+                {
+                    "name": "rs",
+                    "title": "Rust",
+                    "script": {
+                        "uni": "batch",
+                        "child": [
+                            {
+                                "uni": "cmd:rustc",
+                                "target": "${fileName}",
+                                "param": {
+                                    "-o": "${filePrefix}"
+                                }
+                            },
+                            {
+                                "uni": "cmd",
+                                "cmd": "${'./'+filePrefix}"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "FitActionGroup2",
             "title": "Fit Tools",
             "actions": [
                 {
                     "name": "zip",
                     "title": "Zip",
+                    "refreshParent": true,
                     "script": {
                         "uni": "zip"
-                    },
-                    "addToMenu": {
                     }
                 },
                 {
                     "name": "unzip",
                     "title": "Unzip",
+                    "refreshParent": true,
                     "script": {
                         "uni": "unzip"
                     }
@@ -34,7 +132,7 @@
             ]
         },
         {
-            "name": "FitActionGroup2",
+            "name": "FitActionGroup3",
             "title": "Fit Info",
             "actions": [
                 {
@@ -91,7 +189,7 @@
             ]
         },
         {
-            "name": "FitActionGroup3",
+            "name": "FitActionGroup4",
             "title": "Fit Server",
             "script": {
                 "uni": "server",
@@ -124,31 +222,22 @@
         {
             "name": "FitActionGroup5",
             "title": "Convert Postman",
+            "refreshParent": true,
             "script": {
                 "uni": "pipe",
                 "child": [
                     {
-                        "uni": "mix",
-                        "json": {
-                            "filePath": "${filePath}"
-                        }
-                    },
-                    {
-                        "uni": "readFile"
-                    },
-                    {
-                        "uni": "parseJson",
-                        "jsonField": "content"
+                        "uni": "readEditor"
                     },
                     {
                         "uni": "convert",
                         "express": {
-                            "item": "${content.item}",
-                            "collectionName": "${content.info.name}"
+                            "item": "${item}",
+                            "collectionName": "${info.name}"
                         }
                     },
                     {
-                        "uni": "set",
+                        "uni": "setGlobal",
                         "key": "collectionName",
                         "value": "${collectionName}"
                     },
@@ -175,7 +264,7 @@
                                             "uni": "pipe",
                                             "child": [
                                                 {
-                                                    "uni": "set",
+                                                    "uni": "setGlobal",
                                                     "key": "contentType",
                                                     "value": "${this.?request.?body.?urlencoded!=null?'application/x-www-form-urlencoded':''}"
                                                 },
@@ -183,7 +272,6 @@
                                                     "uni": "convert",
                                                     "express": {
                                                         "name": "${name}",
-                                                        "content.flag": "needFormatJsonInConsoleFlag",
                                                         "content.name": "${name}",
                                                         "content.uni": "postman",
                                                         "content.method": "${request.method}",
@@ -231,6 +319,7 @@
                                                 },
                                                 {
                                                     "uni": "writeFile",
+                                                    "contentField": "content",
                                                     "format": true
                                                 }
                                             ]
@@ -264,6 +353,112 @@
                                 }
                             ]
                         }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "FitActionGroup6",
+            "title": "Sort JSON Field",
+            "script": {
+                "uni": "pipe",
+                "child": [
+                    {
+                        "uni": "readEditor"
+                    },
+                    {
+                        "uni": "sortField"
+                    },
+                    {
+                        "uni": "writeEditor"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "FitActionGroup7",
+            "title": "Get JSON Struct",
+            "script": {
+                "uni": "pipe",
+                "child": [
+                    {
+                        "uni": "readEditor"
+                    },
+                    {
+                        "uni": "getStruct"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "FitActionGroup8",
+            "title": "Parse JSON",
+            "script": {
+                "uni": "pipe",
+                "child": [
+                    {
+                        "uni": "readEditor",
+                        "contentField": "content"
+                    },
+                    {
+                        "uni": "parseJson",
+                        "jsonField": "content"
+                    },
+                    {
+                        "uni": "get",
+                        "path": "content"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "FitActionGroup9",
+            "title": "Find JSON",
+            "refreshParent": true,
+            "script": {
+                "uni": "pipe",
+                "child": [
+                    {
+                        "uni": "showConfig",
+                        "config": {
+                            "jsonPath": "..uni"
+                        }
+                    },
+                    {
+                        "uni": "readConfig"
+                    },
+                    {
+                        "uni": "setGlobal",
+                        "key": "jsonPath",
+                        "value": "${config.?jsonPath}"
+                    },
+                    {
+                        "uni": "readEditor",
+                        "contentField": "content"
+                    },
+                    {
+                        "uni": "parseJson",
+                        "jsonField": "content"
+                    },
+                    {
+                        "uni": "get",
+                        "path": "content"
+                    },
+                    {
+                        "uni": "get",
+                        "path": "${jsonPath}",
+                        "comment": "jsonPath grammar: https://alibaba.github.io/fastjson2/jsonpath_cn"
+                    },
+                    {
+                        "uni": "writeFile",
+                        "filePath": "${fileDir + '/' + filePrefix + '.search.json'}",
+                        "charset": "UTF-8",
+                        "format": true
+                    },
+                    {
+                        "uni": "readFile",
+                        "filePath": "${fileDir + '/' + filePrefix + '.search.json'}",
+                        "charset": "UTF-8"
                     }
                 ]
             }

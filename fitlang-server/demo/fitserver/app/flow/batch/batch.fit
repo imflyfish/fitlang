@@ -1,0 +1,17 @@
+{
+    "uni": "batch",
+    "child": [
+        {
+            "uni": "mix",
+            "json": {
+                "value": 1
+            }
+        },
+        {
+            "uni": "mix",
+            "json": {
+                "value": 2
+            }
+        }
+    ]
+}

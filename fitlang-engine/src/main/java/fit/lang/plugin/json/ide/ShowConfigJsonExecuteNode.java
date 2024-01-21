@@ -1,5 +1,6 @@
 package fit.lang.plugin.json.ide;
 
+import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSONObject;
 import com.intellij.openapi.project.Project;
 import fit.lang.plugin.json.define.JsonExecuteNode;
@@ -22,5 +23,16 @@ public class ShowConfigJsonExecuteNode extends JsonExecuteNode {
 
         UserIdeManager.getUserIdeInterface().showNodeConfig(config, project);
 
+        String configField = nodeJsonDefine.getString("configField");
+
+        if (StrUtil.isBlank(configField)) {
+            configField = "config";
+        }
+
+        config = UserIdeManager.getUserIdeInterface().getNodeConfig();
+
+        input.getNodeContext().setAttribute(configField, config);
+
+        output.set(configField, config);
     }
 }

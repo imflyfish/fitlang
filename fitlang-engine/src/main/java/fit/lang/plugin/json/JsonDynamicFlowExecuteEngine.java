@@ -30,10 +30,7 @@ import fit.lang.plugin.json.function.JsonFunctionExecuteNode;
 import fit.lang.plugin.json.function.JsonPackageExecuteNode;
 import fit.lang.plugin.json.http.*;
 import fit.lang.plugin.json.ide.*;
-import fit.lang.plugin.json.ide.message.ShowErrorMessageJsonExecuteNode;
-import fit.lang.plugin.json.ide.message.ShowInfoMessageJsonExecuteNode;
-import fit.lang.plugin.json.ide.message.ShowInputDialogJsonExecuteNode;
-import fit.lang.plugin.json.ide.message.ShowOkCancelDialogJsonExecuteNode;
+import fit.lang.plugin.json.ide.message.*;
 import fit.lang.plugin.json.info.InfoJsonExecuteNode;
 import fit.lang.plugin.json.info.SystemBaseInfoJsonExecuteNode;
 import fit.lang.plugin.json.json.*;
@@ -42,6 +39,10 @@ import fit.lang.plugin.json.net.SslTelnetHttpJsonExecuteNode;
 import fit.lang.plugin.json.net.SslTelnetJsonExecuteNode;
 import fit.lang.plugin.json.net.TelnetHttpJsonExecuteNode;
 import fit.lang.plugin.json.net.TelnetJsonExecuteNode;
+import fit.lang.plugin.json.office.MergeExcelJsonExecuteNode;
+import fit.lang.plugin.json.office.ReadExcelForAllSheetJsonExecuteNode;
+import fit.lang.plugin.json.office.ReadExcelJsonExecuteNode;
+import fit.lang.plugin.json.office.WriteExcelJsonExecuteNode;
 import fit.lang.plugin.json.os.GetClipboardJsonExecuteNode;
 import fit.lang.plugin.json.os.SetClipboardJsonExecuteNode;
 import fit.lang.plugin.json.util.*;
@@ -246,6 +247,10 @@ public class JsonDynamicFlowExecuteEngine extends JsonExecuteNode implements Exe
 
         register("convert", ConvertJsonExecuteNode.class);
         register("convertKeyValueList", ConvertKeyValueListJsonExecuteNode.class);
+        register("convertArrayToObject", ConvertArrayToObjectJsonExecuteNode.class);
+        register("convertObjectToArray", ConvertObjectToArrayJsonExecuteNode.class);
+        register("convertToObjectArray", ConvertToObjectArrayJsonExecuteNode.class);
+        register("convertToBasicArray", ConvertToBasicArrayJsonExecuteNode.class);
 
         register("add", AddJsonExecuteNode.class);
 
@@ -323,19 +328,31 @@ public class JsonDynamicFlowExecuteEngine extends JsonExecuteNode implements Exe
         //ide
         register("readEditor", ReadEditorJsonExecuteNode.class);
         register("writeEditor", WriteEditorJsonExecuteNode.class);
-        register("readEditorSearch", ReadEditorSearchJsonExecuteNode.class);
-        register("readEditorReplace", ReadEditorReplaceJsonExecuteNode.class);
         register("openWebPage", OpenWebPageJsonExecuteNode.class);
+        register("showHtml", ShowHtmlJsonExecuteNode.class);
+        register("showJsonPage", ShowJsonPageJsonExecuteNode.class);
         register("showConfig", ShowConfigJsonExecuteNode.class);
         register("readConfig", ReadConfigJsonExecuteNode.class);
+        register("showGlobalConfigDialog", ShowGlobalConfigDialogJsonExecuteNode.class);
+        register("chooseFile", ChooseFileJsonExecuteNode.class);
         register("showInfoMessage", ShowInfoMessageJsonExecuteNode.class);
+        register("showWarningMessage", ShowWarningMessageJsonExecuteNode.class);
         register("showErrorMessage", ShowErrorMessageJsonExecuteNode.class);
-        register("showOkCancelDialog", ShowOkCancelDialogJsonExecuteNode.class);
         register("showInputDialog", ShowInputDialogJsonExecuteNode.class);
+        register("showOkCancelDialog", ShowOkCancelDialogJsonExecuteNode.class);
+        register("showYesNoCancelDialog", ShowYesNoCancelDialogJsonExecuteNode.class);
+        register("showCheckboxOkCancelDialog", ShowCheckboxOkCancelDialogJsonExecuteNode.class);
+        register("showPasswordDialog", ShowPasswordDialogJsonExecuteNode.class);
 
         //os
         register("getClipboard", GetClipboardJsonExecuteNode.class);
         register("setClipboard", SetClipboardJsonExecuteNode.class);
+
+        //office
+        register("readExcelForAllSheet", ReadExcelForAllSheetJsonExecuteNode.class);
+        register("readExcel", ReadExcelJsonExecuteNode.class);
+        register("writeExcel", WriteExcelJsonExecuteNode.class);
+        register("mergeExcel", MergeExcelJsonExecuteNode.class);
 
     }
 }

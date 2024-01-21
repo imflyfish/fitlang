@@ -21,7 +21,15 @@ public class PluginActionConfig {
 
     boolean refreshParent;
 
+    /**
+     * 是否可见
+     */
     boolean visible;
+
+    /**
+     * 是否同步执行， 默认异步执行
+     */
+    boolean synchronize;
 
     protected PluginActionConfig(JSONObject config) {
         this.name = config.getString("name");
@@ -33,6 +41,7 @@ public class PluginActionConfig {
         this.refresh = Boolean.TRUE.equals(config.getBoolean("refresh"));
         this.refreshParent = Boolean.TRUE.equals(config.getBoolean("refreshParent"));
         this.visible = !Boolean.FALSE.equals(config.getBoolean("visible"));
+        this.synchronize = Boolean.TRUE.equals(config.getBoolean("synchronize"));
     }
 
     public String getId() {
@@ -85,5 +94,13 @@ public class PluginActionConfig {
 
     public void setVisible(boolean visible) {
         this.visible = visible;
+    }
+
+    public boolean isSynchronize() {
+        return synchronize;
+    }
+
+    public void setSynchronize(boolean synchronize) {
+        this.synchronize = synchronize;
     }
 }

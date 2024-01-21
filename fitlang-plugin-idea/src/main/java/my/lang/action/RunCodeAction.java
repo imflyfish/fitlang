@@ -15,6 +15,8 @@ import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.fileChooser.FileChooser;
+import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -28,6 +30,7 @@ import fit.lang.plugin.json.ide.UserIdeManager;
 import fit.lang.plugin.json.util.ExecuteNodeLogActionable;
 import fit.lang.plugin.json.util.LogJsonExecuteNode;
 import fit.lang.plugin.json.web.ServerJsonExecuteNode;
+import my.lang.action.fit.*;
 
 import java.awt.*;
 import java.io.File;
@@ -42,7 +45,7 @@ import java.util.concurrent.*;
 import static fit.lang.ExecuteNodeUtil.getRootException;
 import static fit.lang.plugin.json.ExecuteJsonNodeConst.FIELD_NAME_OF_IDEA_PROJECT;
 import static fit.lang.plugin.json.ExecuteJsonNodeUtil.*;
-import static my.lang.MyLanguage.isMyLanguageFile;
+import static my.lang.MyLanguage.isFitLanguageFile;
 
 /**
  * 插件父类
@@ -149,8 +152,8 @@ public abstract class RunCodeAction extends AnAction {
 
         boolean finalNeedShowFile = needShowFile;
 
-        if (filePathList.size() == 1 && isSynchronize(filePathList.get(0))) {
-            execute(e, project, filePathList, finalNeedShowFile);
+        if (filePathList.size() == 1 && (isSynchronize(filePathList.get(0)) || filePathList.get(0).contains(".amis.") || filePathList.get(0).contains(".xrender."))) {
+            execute(e, project, filePathList, false);
         } else {
             threadPoolExecutor.submit(() -> {
                 execute(e, project, filePathList, finalNeedShowFile);
@@ -160,7 +163,7 @@ public abstract class RunCodeAction extends AnAction {
 
     private static boolean isSynchronize(String filePath) {
         String content = readNodeDefineFile(filePath);
-        return content.contains("open") || content.contains("show");
+        return content.contains("open") || content.contains("show") || content.contains("choose");
     }
 
     private void execute(AnActionEvent e, Project project, List<String> filePathList, boolean finalNeedShowFile) {
@@ -232,13 +235,13 @@ public abstract class RunCodeAction extends AnAction {
 
         String fileSuffix = null;
         if (fileName.contains(".")) {
-            fileSuffix = fileName.split("\\.")[1];
+            fileSuffix = fileName.substring(fileName.indexOf(".") + 1);
             contextParam.put("fileSuffix", fileSuffix);
         }
 
         boolean needFormatJsonInConsole = false;
         String result;
-        if (isMyLanguageFile(fileName)) {
+        if (isFitLanguageFile(fileName)) {
             result = ExecuteJsonNodeUtil.executeCode(code, contextParam);
             needFormatJsonInConsole = needFormatJsonInConsole(code);
         } else if (fileSuffix != null && supportLanguageMap.containsKey(fileSuffix)) {
@@ -267,11 +270,13 @@ public abstract class RunCodeAction extends AnAction {
         if (isJsonObjectText(result)) {
             JSONObject resultJson = JSONObject.parseObject(result);
             JSONArray lines;
-            if (resultJson.containsKey("result")) {
+            if (resultJson.getJSONObject("result") != null) {
                 lines = resultJson.getJSONObject("result").getJSONArray("out");
-            } else {
+            } else if (resultJson.getJSONArray("list") != null) {
                 JSONArray list = resultJson.getJSONArray("list");
                 lines = list.getJSONObject(list.size() - 1).getJSONObject("result").getJSONArray("out");
+            } else {
+                return result;
             }
             return lines == null ? "" : StrUtil.join("\n", lines);
         }
@@ -399,19 +404,87 @@ public abstract class RunCodeAction extends AnAction {
 
             }
 
-            @Override
-            public void showNodeConfig(JSONObject config, Project project) {
-                NodeConfigPanel.nodeConfigPanel.resetConfig(config, project);
+            public void showHtml(String html, JSONObject option, JSONObject context) {
+
+                HtmlPanel htmlPanel = new HtmlPanel(html, option, context);
+                htmlPanel.show();
+
             }
 
             @Override
+            public JSONObject showJsonPage(JSONObject jsonPage, JSONObject jsonData, JSONObject option, JSONObject context) {
+
+                JsonPagePanel jsonPagePanel = new JsonPagePanel(jsonPage, jsonData, option, context);
+                if (jsonPagePanel.isModal()) {
+                    jsonPagePanel.showAndGet();
+                } else {
+                    jsonPagePanel.show();
+                }
+
+                return jsonPagePanel.getJsonData();
+            }
+
+            @Override
+            public JSONObject showNodeConfig(JSONObject config, Project project) {
+
+                NodeConfigAction.nodeConfigPanel.resetConfig(config, project);
+
+
+                return NodeConfigAction.nodeConfigPanel.readConfig();
+            }
+
+            @Override
+            public JSONObject showGlobalConfigDialog(JSONObject config, JSONObject option) {
+
+                GlobalConfigPanelDialog globalConfigPanelDialog = new GlobalConfigPanelDialog(config, option);
+                globalConfigPanelDialog.showAndGet();
+
+                return globalConfigPanelDialog.readConfig();
+            }
+
+
+            @Override
             public JSONObject getNodeConfig() {
-                return NodeConfigPanel.nodeConfigPanel.readConfig();
+                return NodeConfigAction.nodeConfigPanel.readConfig();
+            }
+
+            @Override
+            public List<File> chooseFiles(JSONObject config) {
+                Editor editor = getEditor();
+                Project project = editor.getProject();
+                boolean chooseFiles = true;
+                boolean chooseFolders = false;
+                boolean chooseJars = false;
+                boolean chooseJarsAsFiles = false;
+                boolean chooseJarContents = false;
+                boolean chooseMultiple = Boolean.TRUE.equals(config.getBoolean("isMultiple"));
+                FileChooserDescriptor fileChooserDescriptor = new FileChooserDescriptor(chooseFiles,
+                        chooseFolders,
+                        chooseJars,
+                        chooseJarsAsFiles,
+                        chooseJarContents,
+                        chooseMultiple);
+                VirtualFile[] files = FileChooser.chooseFiles(fileChooserDescriptor, project, null);
+                List<File> fileList = new ArrayList<>();
+                for (VirtualFile file : files) {
+                    fileList.add(new File(file.getPath()));
+                }
+                return fileList;
             }
 
             @Override
             public void showInfoMessage(String title, String message) {
                 Messages.showInfoMessage(message, title);
+            }
+
+            @Override
+            public String showPasswordDialog(String title, String message) {
+                return Messages.showPasswordDialog(message, title);
+            }
+
+            @Override
+            public int showCheckboxOkCancelDialog(String title, String message, String checkboxText) {
+                return Messages.showCheckboxOkCancelDialog(message, title, checkboxText, false, 0, 0, null);
             }
 
             @Override
@@ -429,23 +502,14 @@ public abstract class RunCodeAction extends AnAction {
                 return Messages.showOkCancelDialog(message, title, okText, cancelText, null);
             }
 
-            public String readEditorSearchContent() {
-                SearchReplaceComponent searchReplaceComponent = getSearchReplaceComponent();
-
-                if (searchReplaceComponent != null) {
-                    return searchReplaceComponent.getSearchTextComponent().getText();
-                }
-                return "!!!ERROR: editor search component not open!!!";
+            @Override
+            public int showYesNoCancelDialog(String title, String message) {
+                return Messages.showYesNoCancelDialog(message, title, null);
             }
 
-            public String readEditorReplaceContent() {
-
-                SearchReplaceComponent searchReplaceComponent = getSearchReplaceComponent();
-
-                if (searchReplaceComponent != null) {
-                    return searchReplaceComponent.getReplaceTextComponent().getText();
-                }
-                return "!!!ERROR: editor replace component not open!!!";
+            @Override
+            public void showWarningDialog(String title, String message) {
+                Messages.showWarningDialog(message, title);
             }
 
         });

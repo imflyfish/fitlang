@@ -1,5 +1,14 @@
 ## 介绍
 
+FitLang是面向开发人员群体的，适合做一个IDEA环境下小工具：postman、json比较、乱码探测、加密解密、进制转换、RPA、中间件，只要有IDEA，安装FitLang插件，添加对应的工具json代码，这些工具都有了
+
+把日常开发工作中，遇到的json数据处理地方，沉淀到工具箱，方便后续使用，目前积累了近百个节点服务，适合DIY扩展
+
+IDEA + 如意插件 = 可视化脚本语言 + 中间件 + 动态插件 + 迷你应用 + 迷你工具
+
+支持节点组: json，flow，http，excel，telnet，clipboard，file，cmd，ide，info，test，mock，perf，monitor
+最后有详细列表
+
 fit语言是一门轻量级编程语言，兼具开发人员友好和工具处理友好。
 
 特点：
@@ -46,10 +55,18 @@ fit语言是一门轻量级编程语言，兼具开发人员友好和工具处�
 
 插件审核通过后，遇到.fit结尾文件时会提示下载，预览版需要下载zip包，然后在IDEA中按照，使用方式如下
 
+plugin:
 ![](https://plugins.jetbrains.com/files/22593/screenshot_cc167984-8557-41da-8211-36eeb5864633)
+
+script:
 ![](https://plugins.jetbrains.com/files/22593/screenshot_2ce2a61a-43b9-4569-bcc1-9d98e8b5f306)
 ![](https://plugins.jetbrains.com/files/22593/screenshot_573fe927-a2e3-4abf-b012-8c4a25029419)
+
+server:
 ![](https://plugins.jetbrains.com/files/22593/screenshot_610c35af-8ae6-45cd-a102-bf3b90a74745)
+
+applet:
+![](https://plugins.jetbrains.com/files/22593/screenshot_f515df32-000b-4f4b-9cdd-676e2342666b)
 
 ## demo
 
@@ -112,10 +129,13 @@ FitServer 使用fit语言开发的中间件，相当于轻量级的Nginx，tomca
 - get: 使用json path获取值 （json path语法说明：https://alibaba.github.io/fastjson2/jsonpath_cn）
 - set: 使用json path设置值
 - getStruct: 获取json结构
+- getSchema: 获取JsonSchema
 - sortField: 按照字段排序（字母表升序）
 - add: 支持json相加
 - increase: 加+1
 - decrease: 减-1
+- compare: 比较json
+- diff: 比较json，只返回差异
 
 ### 流程节点（有child子节点）
 
@@ -221,6 +241,10 @@ FitServer 使用fit语言开发的中间件，相当于轻量级的Nginx，tomca
 - writeExcel: 写入Excel
 - mergeExcel: 合并Excel
 - readExcelForAllSheet: 读取所有sheet内容
+
+### 小应用
+
+- applet: 小应用
 
 ## 🔋 JetBrains开源授权
 

@@ -4,6 +4,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
@@ -26,7 +27,7 @@ import static my.lang.action.RunCodeAction.supportLanguageMap;
 
 public abstract class FitLangPluginActionGroup extends DefaultActionGroup {
 
-    AnAction[] children = new AnAction[0];
+    AnAction[] children = null;
 
     protected PluginActionConfig actionConfig;
 
@@ -34,8 +35,9 @@ public abstract class FitLangPluginActionGroup extends DefaultActionGroup {
 
     ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(8, 100, 100, TimeUnit.MINUTES, workQueue);
 
-    public boolean canBePerformed(@NotNull AnActionEvent e) {
-        return actionConfig != null;
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.EDT;
     }
 
     @Override
@@ -47,7 +49,9 @@ public abstract class FitLangPluginActionGroup extends DefaultActionGroup {
 
     @Override
     public void update(AnActionEvent event) {
-        if (children == null || children.length == 0 || debug) {
+        if (children == null || debug) {
+
+            children = new AnAction[0];
 
             event.getPresentation().setEnabledAndVisible(false);
 
@@ -69,6 +73,7 @@ public abstract class FitLangPluginActionGroup extends DefaultActionGroup {
             }
             JSONObject actionScript = groupConfig.getJSONObject("script");
             JSONArray actions = groupConfig.getJSONArray("actions");
+            debug = Boolean.TRUE.equals(pluginConfig.getBoolean("debug"));
 
             if (actionScript != null || actions != null && actions.size() == 1) {
                 if (actionScript != null) {
@@ -97,7 +102,6 @@ public abstract class FitLangPluginActionGroup extends DefaultActionGroup {
             if (!Boolean.FALSE.equals(groupConfig.getBoolean("visible"))) {
                 event.getPresentation().setEnabledAndVisible(true);
             }
-            debug = Boolean.TRUE.equals(pluginConfig.getBoolean("debug"));
             List<FitLangPluginAction> actionList = new ArrayList<>();
             Set<String> pluginNameSet = new HashSet<>();
             for (Object item : actions) {

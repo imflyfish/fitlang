@@ -3,16 +3,14 @@ package my.lang.action;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.find.SearchReplaceComponent;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.CommonDataKeys;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileChooser.FileChooser;
@@ -25,21 +23,20 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.ui.content.Content;
 import fit.lang.plugin.json.ExecuteJsonNodeUtil;
 import fit.lang.plugin.json.function.JsonPackageExecuteNode;
-import fit.lang.plugin.json.ide.UserIdeInterface;
-import fit.lang.plugin.json.ide.UserIdeManager;
+import fit.lang.plugin.json.ide.node.UserIdeInterface;
+import fit.lang.plugin.json.ide.node.UserIdeManager;
 import fit.lang.plugin.json.util.ExecuteNodeLogActionable;
 import fit.lang.plugin.json.util.LogJsonExecuteNode;
 import fit.lang.plugin.json.web.ServerJsonExecuteNode;
-import my.lang.action.fit.*;
+import my.lang.dialog.*;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.io.File;
 import java.io.InputStream;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 
 import static fit.lang.ExecuteNodeUtil.getRootException;
@@ -54,6 +51,7 @@ import static my.lang.MyLanguage.isFitLanguageFile;
  * @date 2020-09-11 22:48:45
  */
 public abstract class RunCodeAction extends AnAction {
+
 
     static final Map<Project, ConsoleView> projectConsoleViewMap = new ConcurrentHashMap<>();
 
@@ -76,6 +74,10 @@ public abstract class RunCodeAction extends AnAction {
 
     protected RunCodeAction(String title) {
         super(title);
+    }
+
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
     }
 
     /**
@@ -106,7 +108,7 @@ public abstract class RunCodeAction extends AnAction {
 
         final Editor editor = e.getData(CommonDataKeys.EDITOR);
 
-        implementIdeOperator(e);
+        implementIdeOperator(e, project);
 
         VirtualFile[] virtualFiles = e.getData(PlatformDataKeys.VIRTUAL_FILE_ARRAY);
 
@@ -187,10 +189,14 @@ public abstract class RunCodeAction extends AnAction {
                             info = "";
                         }
                         String infoText;
-                        if (info instanceof Map || info instanceof List) {
+                        if (info instanceof Map) {
                             infoText = toJsonTextWithFormat(JSONObject.from(info));
+                        } else if (info instanceof Collection) {
+                            infoText = JSON.toJSONString(info);
                         } else {
-                            infoText = info.toString();
+                            JSONObject jsonObject = new JSONObject();
+                            jsonObject.put("_raw", info);
+                            infoText = toJsonTextWithFormat(jsonObject);
                         }
                         RunCodeAction.print(infoText + "\n", project, getProjectConsoleViewMap());
                     }
@@ -361,8 +367,9 @@ public abstract class RunCodeAction extends AnAction {
      * IDE 操作实现
      *
      * @param actionEvent
+     * @param theProject
      */
-    public static void implementIdeOperator(AnActionEvent actionEvent) {
+    public static void implementIdeOperator(AnActionEvent actionEvent, Project theProject) {
         /**
          *
          */
@@ -370,6 +377,13 @@ public abstract class RunCodeAction extends AnAction {
 
             Editor getEditor() {
                 return actionEvent.getData(CommonDataKeys.EDITOR);
+            }
+
+            Project getProject() {
+                if (actionEvent != null) {
+                    actionEvent.getProject();
+                }
+                return theProject;
             }
 
             SearchReplaceComponent getSearchReplaceComponent() {
@@ -399,30 +413,40 @@ public abstract class RunCodeAction extends AnAction {
 
             public void openWebPage(String url, JSONObject option, JSONObject context) {
 
-                WebPagePanel webPagePanel = new WebPagePanel(url, option, context);
-                webPagePanel.show();
+                WebPagePanelDialog webPagePanelDialog = new WebPagePanelDialog(url, option, context);
+                webPagePanelDialog.show();
 
             }
 
             public void showHtml(String html, JSONObject option, JSONObject context) {
 
-                HtmlPanel htmlPanel = new HtmlPanel(html, option, context);
-                htmlPanel.show();
+                HtmlPanelDialog htmlPanelDialog = new HtmlPanelDialog(html, option, context);
+                htmlPanelDialog.show();
 
             }
 
             @Override
             public JSONObject showJsonPage(JSONObject jsonPage, JSONObject jsonData, JSONObject option, JSONObject context) {
 
-                JsonPagePanel jsonPagePanel = new JsonPagePanel(jsonPage, jsonData, option, context);
-                if (jsonPagePanel.isModal()) {
-                    jsonPagePanel.showAndGet();
+                JsonPagePanelDialog jsonPageDialog = new JsonPagePanelDialog(jsonPage, jsonData, option, context);
+                if (jsonPageDialog.isModal()) {
+                    jsonPageDialog.showAndGet();
                 } else {
-                    jsonPagePanel.show();
+                    jsonPageDialog.show();
                 }
 
-                return jsonPagePanel.getJsonData();
+                return jsonPageDialog.getJsonData();
             }
+
+            @Override
+            public JSONObject showDiff(JSONObject json1, JSONObject json2, JSONObject option, JSONObject context) {
+
+                DiffDialogWrapper diffDialogWrapper = new DiffDialogWrapper(getEditor().getProject(), json1, json2);
+                diffDialogWrapper.show();
+
+                return json1;
+            }
+
 
             @Override
             public JSONObject showNodeConfig(JSONObject config, Project project) {
@@ -450,8 +474,7 @@ public abstract class RunCodeAction extends AnAction {
 
             @Override
             public List<File> chooseFiles(JSONObject config) {
-                Editor editor = getEditor();
-                Project project = editor.getProject();
+                Project project = getProject();
                 boolean chooseFiles = true;
                 boolean chooseFolders = false;
                 boolean chooseJars = false;

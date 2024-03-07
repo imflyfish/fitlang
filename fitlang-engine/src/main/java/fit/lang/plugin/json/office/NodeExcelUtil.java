@@ -107,6 +107,9 @@ public class NodeExcelUtil {
 
     static JSONObject writeExcel(String path, String sheetName, JSONArray rows, boolean isAppend, JSONObject header) throws Exception {
 
+        if (rows == null) {
+            rows = new JSONArray();
+        }
         if (StrUtil.isBlank(sheetName)) {
             sheetName = "Sheet1";
         }
@@ -143,7 +146,11 @@ public class NodeExcelUtil {
             JSONObject rowInfo = (JSONObject) row;
             int columnIndex = 0;
             for (Map.Entry<String, Object> rowEntry : rowInfo.entrySet()) {
-                WritableCell cell = new Label(columnIndex++, rowIndex, rowEntry.getValue().toString());
+                String title = "title";
+                if (rowEntry.getValue() != null) {
+                    title = rowEntry.getValue().toString();
+                }
+                WritableCell cell = new Label(columnIndex++, rowIndex, title);
                 sheet.addCell(cell);
             }
             rowIndex++;

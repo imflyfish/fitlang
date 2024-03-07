@@ -2,7 +2,7 @@
     <id>FitLang</id>
     <name>FitLang</name>
     <vendor email="yanchangyou@gmail.com" url="https://github.com/yanchangyou">yanchangyou</vendor>
-    <idea-version since-build="231.0" until-build="253.*"/>
+    <idea-version since-build="231.0" until-build="331.*"/>
     <description><![CDATA[
     English: (后面有中文版)
     <br/>
@@ -71,6 +71,12 @@ mix: mix a json object<br/>
 replace: replace output<br/>
 mix: mix a json object<br/>
 mixNode: execute node, and mix<br/>
+get: get field value by json path<br/>
+set: set field value by json path<br/>
+getStruct: get json structure<br/>
+getSchema: get json schema<br/>
+compare: compare json<br/>
+diff: diff json<br/>
 <br/>
 
 flow nodes (with child nodes)<br/>
@@ -154,6 +160,10 @@ mergeExcel: merge excel<br/>
 readExcelForAllSheet: read excel for all sheet<br/>
 <br/>
 
+applet<br/>
+applet: applet<br/>
+<br/>
+
 中文: <br/>
 <br/>
 <p>
@@ -219,6 +229,12 @@ mixNode: 混入节点执行，用于嵌套字段场景<br/>
 parseJson: 解析json字符串成json对象
 stringifyJson: json对象转换为json字符串
 replace: 替换结果输出<br/>
+get: 用JsonPath获取字段值<br/>
+set:用JsonPath设置字段值<br/>
+getStruct: 获取json结构<br/>
+getSchema: 获取JsonSchema<br/>
+compare: 比较json<br/>
+diff: 比较json，只返回差异<br/>
 <br/>
 
 流程节点（有child子节点）<br/>
@@ -303,6 +319,10 @@ mergeExcel: 合并Excel<br/>
 readExcelForAllSheet: 读取所有sheet内容<br/>
 <br/>
 
+小应用<br/>
+applet: 小应用<br/>
+<br/>
+
 </p>
     ]]></description>
 
@@ -316,6 +336,15 @@ readExcelForAllSheet: 读取所有sheet内容<br/>
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="FitLang Console" anchor="bottom" order="first" icon="/my/lang/icon/fit.svg"
                     factoryClass="my.lang.action.ScriptConsoleWindowFactory"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileEditorProvider implementation="my.lang.page.render.JsonPageRenderProvider"/>
+        <fileEditorProvider implementation="my.lang.page.action.JsonActionRenderProvider"/>
+        <fileEditorProvider implementation="my.lang.page.app.JsonAppRenderProvider"/>
+        <fileEditorProvider implementation="my.lang.page.diff.JsonDiffRenderProvider"/>
+        <!--        <fileEditorProvider implementation="my.lang.page.fit.JsonFitRenderProvider"/>-->
+        <fileEditorProvider implementation="my.lang.page.applet.AppletJsonAppRenderProvider"/>
     </extensions>
 
     <actions>
@@ -384,7 +413,24 @@ readExcelForAllSheet: 读取所有sheet内容<br/>
         <![CDATA[
         FitLang update list:<br/>
         <ul>
-            <li>0.10.0 upgrade idea version to 231</li>
+            <li>0.11.0 </li>
+            <li>0.10.16 native form support data type, edit type and title config</li>
+            <li>0.10.15 applet support format, field type; fix json compare</li>
+            <li>0.10.14 refine applet button and split; compare node support onlyDiff, toArray and sum; remove node diff</li>
+            <li>0.10.13 refine compare and applet</li>
+            <li>0.10.12 add native form, json compare; applet support config split index</li>
+            <li>0.10.11 applet support save action; refine applet; add number tool and text tool</li>
+            <li>0.10.10 http support useInput config; applet support reload, clear output; fix project plugin, choose file in applet</li>
+            <li>0.10.9 rename mini app to applet; refine applet support ui field</li>
+            <li>0.10.8 add node: mini app; refine fix script visualization; update idea version to 232; fix writeExcel bug</li>
+            <li>0.10.7 fit support visualization; refine diff, toolbar</li>
+            <li>0.10.6 support script and graph synchronize; some bug fix</li>
+            <li>0.10.5 add node: showDiff; support diff.json file type; app define support exchange input output; fix fit server path bug</li>
+            <li>0.10.4 add node: getSchema; fix JBCefBrowser not dispose; refine app define</li>
+            <li>0.10.3 add app with json and json form</li>
+            <li>0.10.2 json page support json form; add action render</li>
+            <li>0.10.1 page json redefine</li>
+            <li>0.10.0 upgrade idea version to 231; embed amis and logicflow</li>
             <li>0.9.7 add node: showHtml, showJsonPage</li>
             <li>0.9.6 add node: showGlobalConfigDialog, showYesNoCancelDialog, showPasswordDialog, showCheckboxOkCancelDialog, convertObjectToArray, convertArrayToObject, convertToObjectArray, convertToBasicArray, showWarningMessage; remove node: readEditorSearch, readEditorReplace; refine node: readExcel, writeExcel, mergeExcel</li>
             <li>0.9.5 add node: chooseFile, readExcel, writeExcel, mergeExcel, readExcelForAllSheet; refine code completion; project plugin support synchronize config</li>
